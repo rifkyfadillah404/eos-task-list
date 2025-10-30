@@ -4,6 +4,12 @@
 .env.*.local
 .env.production.local
 
+# Personal/Private Files
+.claude/
+WBS.md
+README.private.md
+README-PRIVATE.md
+
 # Dependencies
 node_modules/
 npm-debug.log*
