@@ -53,6 +53,7 @@ export const AdminDashboard = () => {
   const { getAllTasks, moveTask, fetchTasks } = useTask();
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -157,10 +158,22 @@ export const AdminDashboard = () => {
         userName={user?.name}
         isAdmin={true}
         onLogout={logout}
+        isMobileOpen={isSidebarOpen}
+        onMobileClose={() => setIsSidebarOpen(false)}
       />
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userName={user?.name} onLogout={logout} />
+        <Header
+          userName={user?.name}
+          onLogout={logout}
+          onToggleSidebar={() => setIsSidebarOpen(true)}
+        />
 
         <main className="flex-1 overflow-auto">
           <div className="p-6 lg:p-8">
@@ -290,7 +303,7 @@ export const AdminDashboard = () => {
                 </section>
 
                 <section className="grid grid-cols-1 gap-4 lg:grid-cols-3 animate-slide-in-left stagger-2">
-                  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-md">
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-md">
                     <div className="flex items-center gap-3">
                       <div className="rounded-2xl bg-indigo-100 p-3">
                         <BarChart3 size={20} className="text-indigo-600" />
@@ -300,7 +313,7 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-slate-500">Visual balance of planning, execution, and delivery.</p>
                       </div>
                     </div>
-                    <div className="mt-5 h-56">
+                    <div className="mt-4 h-48">
                       <ResponsiveContainer>
                         <RadarChart data={statusRadarData} outerRadius="85%">
                           <defs>
@@ -332,7 +345,7 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-md">
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-md">
                     <div className="flex items-center gap-3">
                       <div className="rounded-2xl bg-sky-100 p-3">
                         <Users size={20} className="text-sky-600" />
@@ -342,9 +355,9 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-slate-500">Compare throughput and delivery across members.</p>
                       </div>
                     </div>
-                    <div className="mt-5 h-56">
+                    <div className="mt-4 h-48">
                       <ResponsiveContainer>
-                        <ComposedChart data={workloadChartData} margin={{ top: 20, right: 10, bottom: 0, left: 0 }}>
+                        <ComposedChart data={workloadChartData} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
                           <defs>
                             <linearGradient id="workloadGradient" x1="0" x2="0" y1="0" y2="1">
                               <stop offset="0%" stopColor="#c7d2fe" />
@@ -371,7 +384,7 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-md">
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-md">
                     <div className="flex items-center gap-3">
                       <div className="rounded-2xl bg-rose-100 p-3">
                         <AlertCircle size={20} className="text-rose-600" />
@@ -381,9 +394,9 @@ export const AdminDashboard = () => {
                         <p className="text-xs text-slate-500">Balance of urgency across the queue.</p>
                       </div>
                     </div>
-                    <div className="mt-5 h-56">
+                    <div className="mt-4 h-48">
                       <ResponsiveContainer>
-                        <BarChart data={priorityBarData} layout="vertical" margin={{ top: 10, right: 20, bottom: 10, left: 40 }}>
+                        <BarChart data={priorityBarData} layout="vertical" margin={{ top: 8, right: 16, bottom: 8, left: 36 }}>
                           <CartesianGrid strokeDasharray="4 8" stroke="#e2e8f0" horizontal={false} />
                           <XAxis type="number" hide domain={[0, stats.total || 1]} />
                           <YAxis dataKey="name" type="category" tick={{ fill: '#475569', fontSize: 12 }} />
@@ -402,17 +415,6 @@ export const AdminDashboard = () => {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                    </div>
-                    <div className="mt-5 space-y-3">
-                      {priorityBarData.map(item => (
-                        <div key={item.name} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-800">{item.name} Priority</p>
-                            <p className="text-xs text-slate-500">{stats.total > 0 ? ((item.value / stats.total) * 100).toFixed(1) : 0}% of active tasks</p>
-                          </div>
-                          <span className="text-sm font-semibold" style={{ color: item.fill }}>{item.value}</span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </section>
@@ -530,6 +532,7 @@ export const AdminDashboard = () => {
                   onTaskClick={() => {}}
                   onAddTask={null}
                   onTaskMove={handleTaskMove}
+                  enableDrag={false}
                 />
               </div>
             )}

@@ -1,12 +1,20 @@
-import { User, LogOut } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
-export const Header = ({ userName = 'John Doe', onLogout }) => {
+export const Header = ({ userName = 'John Doe', onLogout, onToggleSidebar = () => {} }) => {
   const [showLogout, setShowLogout] = useState(false);
 
   return (
-    <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
-      <div className="flex items-center gap-4 flex-1"></div>
+    <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between lg:px-8">
+      <div className="flex items-center gap-4 flex-1">
+        <button
+          onClick={onToggleSidebar}
+          className="flex items-center justify-center rounded-lg p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition lg:hidden"
+          title="Open sidebar"
+        >
+          <Menu size={22} />
+        </button>
+      </div>
 
       <div className="flex items-center gap-4">
         <div className="relative border-l border-gray-200 pl-4">

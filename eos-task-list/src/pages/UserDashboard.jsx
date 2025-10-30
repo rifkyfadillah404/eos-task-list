@@ -49,6 +49,7 @@ export const UserDashboard = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [newTaskStatus, setNewTaskStatus] = useState('plan');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -182,10 +183,22 @@ export const UserDashboard = () => {
         setActiveMenu={setActiveMenu}
         userName={user?.name}
         onLogout={logout}
+        isMobileOpen={isSidebarOpen}
+        onMobileClose={() => setIsSidebarOpen(false)}
       />
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header userName={user?.name} onLogout={logout} />
+        <Header
+          userName={user?.name}
+          onLogout={logout}
+          onToggleSidebar={() => setIsSidebarOpen(true)}
+        />
 
         <main className="flex-1 overflow-auto">
           <div className="p-6 lg:p-8">

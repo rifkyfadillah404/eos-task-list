@@ -18,7 +18,7 @@ import { TaskCard } from '../tasks/TaskCard';
 import { DroppableColumn } from './DroppableColumn';
 import { DraggableTaskCard } from './DraggableTaskCard';
 
-export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
+export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDrag = true }) => {
   const [activeId, setActiveId] = useState(null);
 
   const sensors = useSensors(
@@ -68,7 +68,12 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
 
     if (!over) return;
 
-    const taskId = active.id;
+    const rawId = active.id;
+    let taskId = rawId;
+    if (typeof rawId === 'string') {
+      const parsed = Number(rawId);
+      taskId = Number.isNaN(parsed) ? rawId : parsed;
+    }
     const overData = over.data.current;
 
     // Check if dropped on a column
@@ -80,7 +85,7 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
     }
     // Check if dropped on another task in a different column
     else if (overData?.type === 'Task') {
-      const overTask = tasks.find(t => t.id === over.id);
+      const overTask = tasks.find(t => String(t.id) === over.id);
       if (overTask) {
         onTaskMove?.(taskId, overTask.status);
       }
@@ -91,7 +96,46 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
     setActiveId(null);
   };
 
-  const activeTask = tasks.find(task => task.id === activeId);
+  const activeTask = tasks.find(task => String(task.id) === activeId);
+  const activeStatus = activeTask?.status;
+
+  if (!enableDrag) {
+    return (
+      <div className="flex gap-6 overflow-x-auto pb-6">
+        {columns.map((column) => {
+          const columnTasks = getTasksByStatus(column.id);
+
+          return (
+            <div
+              key={column.id}
+              className="flex-shrink-0 w-96 rounded-lg p-4 min-h-96 bg-transparent"
+            >
+              <div className={`${column.color} rounded-lg p-4 mb-4`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">{column.label}</h3>
+                  <span className="text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded">
+                    {columnTasks.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3 min-h-96">
+                {columnTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onTaskClick={onTaskClick}
+                    isDragging={false}
+                    statusVariant={task.status}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <DndContext
@@ -110,12 +154,12 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
       <div className="flex gap-6 overflow-x-auto pb-6">
         {columns.map((column) => {
           const columnTasks = getTasksByStatus(column.id);
-          const taskIds = columnTasks.map(task => task.id);
+          const taskIds = columnTasks.map(task => String(task.id));
 
           return (
             <SortableContext
               key={column.id}
-              items={[column.id, ...taskIds]}
+              items={taskIds}
               strategy={verticalListSortingStrategy}
             >
               <DroppableColumn
@@ -123,6 +167,7 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
                 tasks={columnTasks}
                 onTaskClick={onTaskClick}
                 onAddTask={typeof onAddTask === 'function' ? () => onAddTask(column.id) : undefined}
+                activeStatus={activeStatus}
               />
             </SortableContext>
           );
@@ -132,7 +177,7 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
       <DragOverlay dropAnimation={dropAnimation}>
         {activeTask ? (
           <div className="w-96 shadow-2xl rounded-lg overflow-hidden opacity-90">
-            <TaskCard task={activeTask} onTaskClick={() => {}} isDragging={true} />
+            <TaskCard task={activeTask} onTaskClick={() => {}} isDragging={true} statusVariant={activeTask.status} />
           </div>
         ) : null}
       </DragOverlay>

@@ -26,7 +26,7 @@ const isOverdue = (dateString) => {
   return due < new Date() && due > new Date(new Date().setDate(new Date().getDate() - 1));
 };
 
-export const TaskCard = ({ task, onTaskClick, isDragging }) => {
+export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant }) => {
   const statusIcons = {
     completed: <CheckCircle2 size={18} className="text-green-600" />,
     in_progress: <Clock size={18} className="text-blue-600 animate-pulse" />,
@@ -53,20 +53,34 @@ export const TaskCard = ({ task, onTaskClick, isDragging }) => {
 
   const colors = priorityColors[task.priority] || priorityColors.low;
 
+  const statusStyles = {
+    plan: 'bg-orange-200 border border-orange-300 text-orange-900',
+    in_progress: 'bg-blue-200 border border-blue-300 text-blue-900',
+    completed: 'bg-emerald-200 border border-emerald-300 text-emerald-900',
+  };
+
+  const overlayGradients = {
+    plan: 'from-orange-300/40 via-orange-200/30 to-orange-400/40',
+    in_progress: 'from-blue-300/40 via-blue-200/30 to-blue-400/40',
+    completed: 'from-emerald-300/40 via-emerald-200/30 to-emerald-400/40',
+  };
+
+  const variantClasses = statusVariant
+    ? statusStyles[statusVariant] ?? 'bg-white border border-slate-100'
+    : 'bg-white border border-slate-100';
+
+  const overlayClass = overlayGradients[statusVariant] ?? 'from-transparent via-transparent to-transparent';
+
   return (
     <div
       onDoubleClick={handleDoubleClick}
-      className={`card p-4 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-grab active:cursor-grabbing group relative overflow-hidden ${
+      className={`rounded-2xl shadow-sm ${variantClasses} p-4 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-grab active:cursor-grabbing group relative overflow-hidden ${
         isDragging ? 'opacity-50 scale-95' : ''
-      } ${colors.border} hover:border-l-[6px]`}
+      } ${colors.border} hover:border-l-[6px] text-current`}
     >
       {/* Animated Background Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+      <div className={`absolute inset-0 bg-gradient-to-r ${overlayClass} opacity-40 transition-opacity duration-300 group-hover:opacity-60`}></div>
 
-      {/* Completed State Shine Effect */}
-      {task.status === 'completed' && (
-        <div className="absolute inset-0 bg-gradient-to-r from-green-50/0 via-white/10 to-green-50/0 animate-pulse"></div>
-      )}
       {/* Header with Title & Actions */}
       <div className="flex items-start justify-between mb-3 relative z-10">
         <div className="flex-1 pr-2">

@@ -82,6 +82,7 @@ const mockTasks = [
 
 export const Dashboard = () => {
   const [activeMenu, setActiveMenu] = useState('boards');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [tasks, setTasks] = useState(mockTasks);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -122,10 +123,21 @@ export const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
+      <Sidebar
+        activeMenu={activeMenu}
+        setActiveMenu={setActiveMenu}
+        isMobileOpen={isSidebarOpen}
+        onMobileClose={() => setIsSidebarOpen(false)}
+      />
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
+        <Header onToggleSidebar={() => setIsSidebarOpen(true)} />
 
         <main className="flex-1 overflow-auto">
           <div className="p-8">

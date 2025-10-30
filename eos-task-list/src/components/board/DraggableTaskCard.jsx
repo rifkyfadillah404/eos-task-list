@@ -18,7 +18,7 @@ export const DraggableTaskCard = ({ task, onTaskClick }) => {
     isDragging,
     isOver,
   } = useSortable({
-    id: task.id,
+    id: String(task.id),
     data: {
       type: 'Task',
       task,
@@ -54,6 +54,7 @@ export const DraggableTaskCard = ({ task, onTaskClick }) => {
         task={task}
         onTaskClick={onTaskClick}
         isDragging={isDragging}
+        statusVariant={task.status}
       />
     </div>
   );

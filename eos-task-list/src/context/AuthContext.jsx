@@ -19,15 +19,31 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [initializing, setInitializing] = useState(true);
 
   // Load user from localStorage on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
-    if (savedToken) {
-      setToken(savedToken);
-      getCurrentUser(savedToken);
-      fetchAllUsers(savedToken);
+
+    if (!savedToken) {
+      setInitializing(false);
+      return;
     }
+
+    setToken(savedToken);
+
+    const initialize = async () => {
+      try {
+        await Promise.all([
+          getCurrentUser(savedToken),
+          fetchAllUsers(savedToken),
+        ]);
+      } finally {
+        setInitializing(false);
+      }
+    };
+
+    initialize();
   }, []);
 
   const getCurrentUser = async (authToken) => {
@@ -42,10 +58,13 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
       setUser(data.user);
+      return data.user;
     } catch (err) {
       console.error('Error fetching user:', err);
       localStorage.removeItem('token');
       setToken(null);
+      setUser(null);
+      return null;
     }
   };
 
@@ -189,6 +208,7 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     error,
+    initializing,
     login,
     logout,
     addUser,

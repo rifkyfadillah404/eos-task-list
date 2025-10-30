@@ -6,7 +6,15 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import './App.css';
 
 function AppContent() {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, initializing } = useAuth();
+
+  if (initializing) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 text-sm text-slate-500">
+        Loading workspace...
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => {}} />;

@@ -100,7 +100,7 @@ export const TaskProvider = ({ children }) => {
 
       if (parsed?.task) {
         setTasks(prev => prev.map(task =>
-          task.id === taskId ? { ...parsed.task } : task
+          task.id === taskId ? { ...task, ...parsed.task } : task
         ));
       }
     } catch (error) {
