@@ -1,4 +1,4 @@
-import { Calendar, AlertCircle, Clock, CheckCircle2, Edit2, Trash2, Sparkles } from 'lucide-react';
+import { Calendar, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'No due date';
@@ -15,7 +15,7 @@ const formatDate = (dateString) => {
     const day = date.getDate();
 
     return `${year} ${month} ${day}`;
-  } catch (error) {
+  } catch {
     return dateString;
   }
 };
@@ -26,7 +26,7 @@ const isOverdue = (dateString) => {
   return due < new Date() && due > new Date(new Date().setDate(new Date().getDate() - 1));
 };
 
-export const TaskCard = ({ task, onTaskClick, isDragging, onDelete }) => {
+export const TaskCard = ({ task, onTaskClick, isDragging }) => {
   const statusIcons = {
     completed: <CheckCircle2 size={18} className="text-green-600" />,
     in_progress: <Clock size={18} className="text-blue-600 animate-pulse" />,
@@ -49,11 +49,6 @@ export const TaskCard = ({ task, onTaskClick, isDragging, onDelete }) => {
     if (!isDragging) {
       onTaskClick?.(task);
     }
-  };
-
-  const handleEditClick = (e) => {
-    e.stopPropagation();
-    onTaskClick?.(task);
   };
 
   const colors = priorityColors[task.priority] || priorityColors.low;
@@ -79,27 +74,6 @@ export const TaskCard = ({ task, onTaskClick, isDragging, onDelete }) => {
             {task.title}
           </h3>
           <p className="text-xs text-gray-600 line-clamp-2">{task.description}</p>
-        </div>
-        <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button
-            onClick={handleEditClick}
-            className="p-1.5 hover:bg-indigo-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-            title="Edit"
-          >
-            <Edit2 size={16} className="text-indigo-600" />
-          </button>
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete?.(task.id);
-              }}
-              className="p-1.5 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-              title="Delete"
-            >
-              <Trash2 size={16} className="text-red-600" />
-            </button>
-          )}
         </div>
       </div>
 

@@ -86,7 +86,7 @@ export const Dashboard = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  const handleAddTask = (status) => {
+  const handleAddTask = () => {
     setSelectedTask(null);
     setIsTaskFormOpen(true);
   };

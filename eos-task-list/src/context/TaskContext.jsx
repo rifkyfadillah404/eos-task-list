@@ -1,4 +1,5 @@
-import { createContext, useState, useContext } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useState, useContext, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 
 const TaskContext = createContext();
@@ -18,7 +19,7 @@ export const TaskProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const { token, isAdmin } = useAuth();
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     if (!token) return;
 
     setLoading(true);
@@ -38,9 +39,10 @@ export const TaskProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const addTask = async (taskData, userId) => {
+  const addTask = useCallback(async (taskData, userId) => {
+    const payload = isAdmin ? taskData : { ...taskData, user_id: userId };
     try {
       const response = await fetch(`${API_URL}/tasks`, {
         method: 'POST',
@@ -48,7 +50,7 @@ export const TaskProvider = ({ children }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(taskData)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) throw new Error('Failed to add task');
@@ -63,9 +65,18 @@ export const TaskProvider = ({ children }) => {
       console.error('Error adding task:', error);
       throw error;
     }
-  };
+  }, [isAdmin, token, fetchTasks]);
 
-  const updateTask = async (taskId, taskData) => {
+  const updateTask = useCallback(async (taskId, taskData) => {
+    let previousTasks = [];
+
+    setTasks(prev => {
+      previousTasks = prev.map(task => ({ ...task }));
+      return prev.map(task =>
+        task.id === taskId ? { ...task, ...taskData } : task
+      );
+    });
+
     try {
       const response = await fetch(`${API_URL}/tasks/${taskId}`, {
         method: 'PUT',
@@ -76,17 +87,30 @@ export const TaskProvider = ({ children }) => {
         body: JSON.stringify(taskData)
       });
 
-      if (!response.ok) throw new Error('Failed to update task');
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
 
-      // Refresh tasks
-      await fetchTasks();
+      let parsed;
+      try {
+        parsed = await response.json();
+      } catch {
+        parsed = null;
+      }
+
+      if (parsed?.task) {
+        setTasks(prev => prev.map(task =>
+          task.id === taskId ? { ...parsed.task } : task
+        ));
+      }
     } catch (error) {
+      setTasks(previousTasks);
       console.error('Error updating task:', error);
       throw error;
     }
-  };
+  }, [token]);
 
-  const deleteTask = async (taskId) => {
+  const deleteTask = useCallback(async (taskId) => {
     try {
       const response = await fetch(`${API_URL}/tasks/${taskId}`, {
         method: 'DELETE',
@@ -103,26 +127,26 @@ export const TaskProvider = ({ children }) => {
       console.error('Error deleting task:', error);
       throw error;
     }
-  };
+  }, [token, fetchTasks]);
 
-  const getUserTasks = (userId) => {
+  const getUserTasks = useCallback((userId) => {
     if (isAdmin) {
       // Admin can see all tasks
       return tasks;
     }
     // Users can only see their own tasks
     return tasks.filter(t => t.user_id === userId);
-  };
+  }, [isAdmin, tasks]);
 
-  const getTaskById = (taskId) => {
+  const getTaskById = useCallback((taskId) => {
     return tasks.find(t => t.id === taskId);
-  };
+  }, [tasks]);
 
-  const getAllTasks = () => {
+  const getAllTasks = useCallback(() => {
     return tasks;
-  };
+  }, [tasks]);
 
-  const moveTask = async (taskId, newStatus) => {
+  const moveTask = useCallback(async (taskId, newStatus) => {
     try {
       const task = getTaskById(taskId);
       if (!task) return;
@@ -131,9 +155,9 @@ export const TaskProvider = ({ children }) => {
     } catch (error) {
       console.error('Error moving task:', error);
     }
-  };
+  }, [getTaskById, updateTask]);
 
-  const value = {
+  const value = useMemo(() => ({
     tasks,
     loading,
     fetchTasks,
@@ -144,7 +168,18 @@ export const TaskProvider = ({ children }) => {
     getTaskById,
     getAllTasks,
     moveTask,
-  };
+  }), [
+    tasks,
+    loading,
+    fetchTasks,
+    addTask,
+    updateTask,
+    deleteTask,
+    getUserTasks,
+    getTaskById,
+    getAllTasks,
+    moveTask,
+  ]);
 
   return (
     <TaskContext.Provider value={value}>

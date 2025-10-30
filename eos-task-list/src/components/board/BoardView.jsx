@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
   closestCorners,
-  PointerSensor,
+  defaultDropAnimationSideEffects,
+  defaultDropAnimation,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -20,14 +22,31 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
   const [activeId, setActiveId] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      distance: 5,
+    useSensor(MouseSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 5,
+        distance: 6,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 120,
+        tolerance: 10,
       },
     })
   );
+
+  const dropAnimation = {
+    ...defaultDropAnimation,
+    duration: 320,
+    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    sideEffects: defaultDropAnimationSideEffects({
+      styles: {
+        active: {
+          opacity: '0.4',
+        },
+      },
+    }),
+  };
 
   const columns = [
     { id: 'plan', label: 'Plan', color: 'bg-gray-100' },
@@ -81,6 +100,12 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
+      autoScroll={{
+        enabled: true,
+        acceleration: 0.08,
+        interval: 12,
+        threshold: { x: 0.15, y: 0.1 },
+      }}
     >
       <div className="flex gap-6 overflow-x-auto pb-6">
         {columns.map((column) => {
@@ -97,14 +122,14 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove }) => {
                 column={column}
                 tasks={columnTasks}
                 onTaskClick={onTaskClick}
-                onAddTask={() => onAddTask?.(column.id)}
+                onAddTask={typeof onAddTask === 'function' ? () => onAddTask(column.id) : undefined}
               />
             </SortableContext>
           );
         })}
       </div>
 
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={dropAnimation}>
         {activeTask ? (
           <div className="w-96 shadow-2xl rounded-lg overflow-hidden opacity-90">
             <TaskCard task={activeTask} onTaskClick={() => {}} isDragging={true} />

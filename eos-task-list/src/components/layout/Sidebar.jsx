@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { LayoutGrid, CheckSquare, BarChart3, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutGrid, CheckSquare, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export const Sidebar = ({ activeMenu, setActiveMenu, userName = 'User', isAdmin = false, onLogout }) => {
+export const Sidebar = ({ activeMenu, setActiveMenu, userName = 'User', isAdmin = false, onLogout = () => {} }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'boards', label: 'Board', icon: LayoutGrid },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     ...(isAdmin ? [{ id: 'users', label: 'User Management', icon: Users }] : []),
   ];
 
@@ -62,6 +61,30 @@ export const Sidebar = ({ activeMenu, setActiveMenu, userName = 'User', isAdmin 
           })}
         </ul>
       </nav>
+      <div className="border-t border-gray-200 p-4">
+        {isCollapsed ? (
+          <button
+            onClick={onLogout}
+            className="w-full rounded-lg bg-gray-100 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-200"
+            title="Sign out"
+          >
+            Logout
+          </button>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{userName}</p>
+              <p className="text-xs text-gray-500">{isAdmin ? 'Administrator' : 'Member'}</p>
+            </div>
+            <button
+              onClick={onLogout}
+              className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   );
 };
