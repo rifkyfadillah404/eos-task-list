@@ -1,0 +1,207 @@
+import { createContext, useState, useContext, useEffect } from 'react';
+
+const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+const API_URL = 'http://localhost:5000/api';
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    if (savedToken) {
+      setToken(savedToken);
+      getCurrentUser(savedToken);
+      fetchAllUsers(savedToken);
+    }
+  }, []);
+
+  const getCurrentUser = async (authToken) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch user');
+
+      const data = await response.json();
+      setUser(data.user);
+    } catch (err) {
+      console.error('Error fetching user:', err);
+      localStorage.removeItem('token');
+      setToken(null);
+    }
+  };
+
+  const fetchAllUsers = async (authToken) => {
+    try {
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
+
+  const login = async (userId, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, password })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed');
+      }
+
+      const data = await response.json();
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem('token', data.token);
+
+      // Fetch all users after login
+      fetchAllUsers(data.token);
+
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    setUsers([]);
+    localStorage.removeItem('token');
+  };
+
+  const addUser = async (name, userId, password, role = 'user') => {
+    try {
+      const response = await fetch(`${API_URL}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, userId, password, role })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return { success: false, message: errorData.error };
+      }
+
+      const data = await response.json();
+
+      // Refresh users list
+      if (user?.role === 'admin') {
+        await fetchAllUsers(token);
+      }
+
+      return { success: true, user: data.user };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
+  const updateUser = async (userId, userData) => {
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error);
+      }
+
+      // Refresh users list
+      await fetchAllUsers(token);
+      return true;
+    } catch (err) {
+      console.error('Error updating user:', err);
+      return false;
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      // Refresh users list
+      await fetchAllUsers(token);
+      return true;
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      return false;
+    }
+  };
+
+  const value = {
+    user,
+    users,
+    token,
+    loading,
+    error,
+    login,
+    logout,
+    addUser,
+    updateUser,
+    deleteUser,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+
