@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Edit2, Trash2, X, Users, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, Shield, AlertCircle, CheckCircle2, Search, Filter, UserPlus, UserCheck, UserCircle } from 'lucide-react';
 
 export const UserManagement = () => {
   const { users, addUser, updateUser, deleteUser } = useAuth();
@@ -14,6 +14,8 @@ export const UserManagement = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
 
   const handleOpenForm = (user = null) => {
     setError('');
@@ -105,106 +107,217 @@ export const UserManagement = () => {
     }));
   };
 
+  const totalUsers = users.length;
+  const adminCount = users.filter(user => user.role === 'admin').length;
+  const memberCount = totalUsers - adminCount;
+
+  const filteredUsers = users.filter(user => {
+    const matchesRole = roleFilter === 'all' ? true : user.role === roleFilter;
+    const query = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      query.length === 0 ||
+      user.name.toLowerCase().includes(query) ||
+      user.userId.toLowerCase().includes(query);
+    return matchesRole && matchesSearch;
+  });
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8 animate-slide-in-left stagger-1">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Users size={28} className="text-indigo-600" />
-            User Management
-          </h2>
-          <p className="text-gray-600 mt-1 text-sm">Manage team members and their roles</p>
+    <div className="space-y-10">
+      {/* Hero */}
+      <div className="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-8 shadow-sm animate-slide-in-left stagger-1">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-indigo-700">
+              <Users size={16} />
+              team roster
+            </span>
+            <h2 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Shape your workspace access with confidence.</h2>
+            <p className="text-sm text-slate-600">
+              Invite collaborators, promote leaders, and keep everyone aligned. Fine-tune roles in seconds.
+            </p>
+          </div>
+          <button
+            onClick={() => handleOpenForm()}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl hover:bg-indigo-500"
+          >
+            <Plus size={18} />
+            Add teammate
+          </button>
         </div>
-        <button
-          onClick={() => handleOpenForm()}
-          className="btn-primary flex items-center gap-2 shadow-md hover:shadow-lg transition-all transform hover:scale-105 active:scale-95"
-        >
-          <Plus size={18} />
-          Add User
-        </button>
       </div>
 
-      {/* Users Table */}
-      <div className="card overflow-hidden shadow-md hover:shadow-lg transition-shadow animate-slide-in-left stagger-2">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50">
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">Name</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900">User ID</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Shield size={16} />
-                  Role
-                </th>
-                <th className="px-6 py-4 text-right text-sm font-bold text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user, index) => (
-                <tr
-                  key={user.id}
-                  className="border-b border-gray-200 hover:bg-indigo-50 transition-all duration-200 group animate-slide-in-left"
-                  style={{
-                    animationDelay: `${index * 50}ms`
-                  }}
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold transition-all duration-200 group-hover:scale-110 ${
-                        user.role === 'admin'
-                          ? 'bg-gradient-to-br from-purple-500 to-pink-500'
-                          : 'bg-gradient-to-br from-indigo-500 to-blue-500'
-                      }`}>
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-semibold text-gray-900">{user.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 font-medium">{user.userId}</td>
-                  <td className="px-6 py-4">
-                    <span className={`text-xs px-3 py-1.5 rounded-full font-bold inline-flex items-center gap-1.5 transition-all duration-200 group-hover:scale-110 transform ${
-                      user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {user.role === 'admin' ? <Shield size={14} /> : <Users size={14} />}
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleOpenForm(user)}
-                        className="p-2 hover:bg-blue-100 rounded-lg transition-all duration-200 text-blue-600 hover:scale-110 transform"
-                        title="Edit user"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="p-2 hover:bg-red-100 rounded-lg transition-all duration-200 text-red-600 hover:scale-110 transform"
-                        title="Delete user"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {users.length === 0 && (
-            <div className="text-center py-12">
-              <Users size={48} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500 font-medium">No users yet</p>
-              <p className="text-gray-400 text-sm">Add a new user to get started</p>
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 animate-slide-in-left stagger-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Total members</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{totalUsers}</p>
             </div>
-          )}
+            <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
+              <UserPlus size={22} />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-purple-500">Administrators</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{adminCount}</p>
+            </div>
+            <div className="rounded-xl bg-purple-100 p-3 text-purple-600">
+              <Shield size={22} />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-500">Members</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{memberCount}</p>
+            </div>
+            <div className="rounded-xl bg-sky-100 p-3 text-sky-600">
+              <UserCheck size={22} />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Access health</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">
+                {totalUsers > 0 ? Math.round((adminCount / totalUsers) * 100) : 0}%
+              </p>
+              <p className="text-xs text-slate-500">Admin coverage</p>
+            </div>
+            <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
+              <UserCircle size={22} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Form Modal */}
+      {/* Filters */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-slide-in-left stagger-3">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="relative w-full md:max-w-sm">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name or ID"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-700 shadow-inner focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+              <Filter size={14} />
+              Roles
+            </span>
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'admin', label: 'Admins' },
+              { id: 'user', label: 'Members' },
+            ].map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setRoleFilter(option.id)}
+                className={`rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition ${
+                  roleFilter === option.id
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Users Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 animate-slide-in-left stagger-4">
+        {filteredUsers.map((user, index) => (
+          <div
+            key={user.id}
+            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-2xl"
+            style={{ animationDelay: `${index * 40}ms` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/0 via-purple-50/0 to-indigo-100/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+
+            <div className="relative flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl text-white text-lg font-semibold shadow-sm transition-all duration-300 group-hover:scale-110 ${
+                    user.role === 'admin'
+                      ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+                      : 'bg-gradient-to-br from-indigo-500 to-blue-500'
+                  }`}
+                >
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-slate-900">{user.name}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400">ID · {user.userId}</p>
+                </div>
+              </div>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] shadow-sm ${
+                  user.role === 'admin'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {user.role === 'admin' ? <Shield size={14} /> : <Users size={14} />}
+                {user.role}
+              </span>
+            </div>
+
+            <div className="relative mt-5 space-y-3 text-sm text-slate-600">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Credential ID</span>
+                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  {user.userId}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Account Status</span>
+                <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                  Active
+                </span>
+              </div>
+            </div>
+
+            <div className="relative mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
+              <button
+                onClick={() => handleOpenForm(user)}
+                className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition hover:-translate-y-0.5 hover:bg-indigo-100"
+              >
+                <Edit2 size={16} />
+                Edit
+              </button>
+              <button
+                onClick={() => handleDeleteUser(user.id)}
+                className="flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:-translate-y-0.5 hover:bg-rose-100"
+              >
+                <Trash2 size={16} />
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filteredUsers.length === 0 && (
+        <div className="animate-slide-in-left stagger-5">
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-8 py-16 text-center shadow-sm">
+            <Users size={48} className="mx-auto text-slate-300" />
+            <p className="mt-4 text-sm font-semibold text-slate-600">No users match the current filters</p>
+            <p className="text-xs text-slate-400">Try adjusting your search or role filter.</p>
+          </div>
+        </div>
+      )}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-300">
