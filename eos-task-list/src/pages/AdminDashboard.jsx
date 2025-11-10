@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Header } from '../components/layout/Header';
 import { BoardView } from '../components/board/BoardView';
+import { TaskTable } from '../components/tasks';
 import { UserManagement } from '../components/admin/UserManagement';
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
+import { TaskForm } from '../components/tasks';
 import {
   ResponsiveContainer,
   RadialBarChart,
@@ -27,6 +29,7 @@ import {
   Legend
 } from 'recharts';
 import { BarChart3, TrendingUp, ListTodo, CheckCircle2, AlertCircle, Users, Search, Calendar } from 'lucide-react';
+import { JobManagement } from '../components/jobs';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'No due date';
@@ -52,31 +55,80 @@ export const AdminDashboard = () => {
   const { user, logout, users } = useAuth();
   const { getAllTasks, moveTask, fetchTasks } = useTask();
   const [activeMenu, setActiveMenu] = useState('dashboard');
-  const [selectedUserId, setSelectedUserId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [jobs, setJobs] = useState([]);
 
   // Fetch tasks on component mount
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Fetch jobs for category filter
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/jobs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setJobs(data.jobs || []);
+        }
+      } catch (err) {
+      }
+    };
+    fetchJobs();
+  }, []);
+
   const allTasks = getAllTasks();
 
-  const displayTasks = selectedUserId
-    ? allTasks.filter(t => t.user_id === selectedUserId)
-    : allTasks;
+  // Get unique departments from users
+  const departments = [...new Set(users?.filter(u => u.department_name).map(u => ({
+    id: u.department_id,
+    name: u.department_name
+  })).map(d => JSON.stringify(d)))].map(d => JSON.parse(d));
+
+  // Get unique categories from jobs
+  const categories = [...new Set(jobs.map(j => j.category))].filter(Boolean).sort();
+
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setIsTaskFormOpen(true);
+  };
+
+  const handleSubmitTask = (formData) => {
+    // In admin view, we might want to handle updates differently
+    // For now, just close the form
+    setIsTaskFormOpen(false);
+    setSelectedTask(null);
+  };
+
+  const displayTasks = allTasks;
 
   const filteredTasks = displayTasks.filter(task => {
     const matchesStatus =
       statusFilter === 'all' ? true : task.status === statusFilter;
+    
+    const matchesDepartment = departmentFilter === 'all' ? true : 
+      users?.find(u => u.id === task.user_id)?.department_id === parseInt(departmentFilter);
+    
+    const matchesCategory = categoryFilter === 'all' ? true :
+      jobs.find(j => j.id === task.job_id)?.category === categoryFilter;
+    
     const matchesSearch = taskSearch.trim().length === 0
       ? true
       : [task.title, task.description]
           .filter(Boolean)
           .some(field => field.toLowerCase().includes(taskSearch.toLowerCase()));
-    return matchesStatus && matchesSearch;
+    
+    return matchesStatus && matchesDepartment && matchesCategory && matchesSearch;
   });
 
   const getUserName = (userId) => {
@@ -495,44 +547,15 @@ export const AdminDashboard = () => {
                 <div className="mb-8">
                   <h2 className="text-3xl font-bold text-gray-900 mb-4">Monitor All Tasks</h2>
                   <p className="text-gray-600 mb-6">View and manage team tasks</p>
-
-                  {/* User Filter */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-                    <p className="text-sm font-semibold text-gray-900 mb-3">Filter by User:</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => setSelectedUserId(null)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                          selectedUserId === null
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        All Users
-                      </button>
-                      {users?.filter(u => u.role === 'user').map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => setSelectedUserId(user.id)}
-                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                            selectedUserId === user.id
-                              ? 'bg-indigo-600 text-white shadow-md'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {user.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 <BoardView
                   tasks={displayTasks}
-                  onTaskClick={() => {}}
+                  onTaskClick={null}
                   onAddTask={null}
                   onTaskMove={handleTaskMove}
                   enableDrag={false}
+                  onRefreshTasks={fetchTasks}
                 />
               </div>
             )}
@@ -540,7 +563,7 @@ export const AdminDashboard = () => {
             {/* Tasks List View */}
             {activeMenu === 'tasks' && (
               <div>
-                <div className="mb-10">
+                <div className="mb-8">
                   <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
                       <h2 className="text-3xl font-semibold text-slate-900">All Tasks</h2>
@@ -575,98 +598,85 @@ export const AdminDashboard = () => {
                     </div>
                   </div>
 
+                  {/* Department Filter */}
                   <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Filter by user</p>
-                        <p className="text-sm text-slate-500">Highlight one teammate or view the collective list.</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-purple-500">Filter by Department</p>
+                        <p className="text-sm text-slate-500">View tasks from specific department.</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => setSelectedUserId(null)}
+                          onClick={() => setDepartmentFilter('all')}
                           className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                            selectedUserId === null
-                              ? 'bg-indigo-600 text-white shadow-md'
+                            departmentFilter === 'all'
+                              ? 'bg-purple-600 text-white shadow-md'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
-                          All users
+                          All Departments
                         </button>
-                        {users?.filter(u => u.role === 'user').map(user => (
+                        {departments.map(dept => (
                           <button
-                            key={user.id}
-                            onClick={() => setSelectedUserId(user.id)}
+                            key={dept.id}
+                            onClick={() => setDepartmentFilter(String(dept.id))}
                             className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                              selectedUserId === user.id
-                                ? 'bg-indigo-600 text-white shadow-md'
+                              departmentFilter === String(dept.id)
+                                ? 'bg-purple-600 text-white shadow-md'
                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                           >
-                            {user.name}
+                            📁 {dept.name}
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
+
+                  {/* Category Filter */}
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-500">Filter by Category</p>
+                        <p className="text-sm text-slate-500">View tasks from specific job category.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setCategoryFilter('all')}
+                          className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                            categoryFilter === 'all'
+                              ? 'bg-cyan-600 text-white shadow-md'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          All Categories
+                        </button>
+                        {categories.map(category => (
+                          <button
+                            key={category}
+                            onClick={() => setCategoryFilter(category)}
+                            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                              categoryFilter === category
+                                ? 'bg-cyan-600 text-white shadow-md'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            📋 {category}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+
                 </div>
 
-                <div className="space-y-3">
-                  {filteredTasks.length > 0 ? (
-                    filteredTasks.map(task => (
-                      <div
-                        key={task.id}
-                        className="group rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl"
-                      >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-500">
-                                {task.status.replace('_', ' ')}
-                              </span>
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
-                                  task.priority === 'high'
-                                    ? 'bg-rose-50 text-rose-600'
-                                    : task.priority === 'medium'
-                                    ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-emerald-50 text-emerald-600'
-                                }`}
-                              >
-                                {task.priority} priority
-                              </span>
-                            </div>
-                            <h3 className="mt-3 text-lg font-semibold text-slate-900">
-                              {task.title}
-                            </h3>
-                            <p className="mt-1 text-sm text-slate-500 line-clamp-2">
-                              {task.description || 'No description provided'}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-                            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2">
-                              <Users size={16} className="text-indigo-500" />
-                              <span className="font-semibold text-slate-700">{getUserName(task.user_id)}</span>
-                            </div>
-                            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2">
-                              <Calendar size={16} className="text-indigo-500" />
-                              <span className="font-semibold text-slate-700">{formatDate(task.due_date)}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                              <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                              ID-{task.id}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-slate-200 bg-white/60 py-16 text-center text-slate-500 shadow-sm">
-                      <ListTodo size={48} className="mx-auto text-slate-300" />
-                      <p className="mt-4 text-sm font-semibold">No tasks match your filters</p>
-                      <p className="text-xs text-slate-400">Try resetting search or choosing a different status.</p>
-                    </div>
-                  )}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <TaskTable 
+                    tasks={filteredTasks} 
+                    onTaskClick={null}
+                    users={users}
+                  />
                 </div>
               </div>
             )}
@@ -931,6 +941,11 @@ export const AdminDashboard = () => {
               </div>
             )}
 
+            {/* Job Management View (Admin Only) */}
+            {activeMenu === 'jobs' && (
+              <JobManagement />
+            )}
+
             {/* Users Management View */}
             {activeMenu === 'users' && (
               <UserManagement />
@@ -938,6 +953,16 @@ export const AdminDashboard = () => {
           </div>
         </main>
       </div>
+
+      <TaskForm
+        isOpen={isTaskFormOpen}
+        onClose={() => {
+          setIsTaskFormOpen(false);
+          setSelectedTask(null);
+        }}
+        onSubmit={handleSubmitTask}
+        task={selectedTask}
+      />
     </div>
   );
 };

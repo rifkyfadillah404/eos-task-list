@@ -49,7 +49,8 @@ router.post('/login', async (req, res) => {
         id: user.id,
         name: user.name,
         userId: user.userId,
-        role: user.role
+        role: user.role,
+        department_id: user.department_id
       }
     });
 
@@ -65,7 +66,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     const pool = getPool();
     const result = await pool.request()
       .input('id', req.user.id)
-      .query('SELECT id, name, userId, role FROM users WHERE id = @id');
+      .query('SELECT id, name, userId, role, department_id FROM users WHERE id = @id');
 
     const user = result.recordset[0];
 

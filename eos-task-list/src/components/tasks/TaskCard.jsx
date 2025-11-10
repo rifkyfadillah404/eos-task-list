@@ -1,4 +1,7 @@
-import { Calendar, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, AlertCircle, Clock, CheckCircle2, FolderTree, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'No due date';
@@ -6,15 +9,17 @@ const formatDate = (dateString) => {
   try {
     const date = new Date(dateString);
     const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
 
     const year = date.getFullYear();
     const month = monthNames[date.getMonth()];
     const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
 
-    return `${year} ${month} ${day}`;
+    return `${day} ${month} ${year} ${hours}:${minutes}`;
   } catch {
     return dateString;
   }
@@ -26,7 +31,41 @@ const isOverdue = (dateString) => {
   return due < new Date() && due > new Date(new Date().setDate(new Date().getDate() - 1));
 };
 
-export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant }) => {
+const getJobHierarchy = (jobId, jobs) => {
+  if (!jobId || !jobs || !jobs.length) {
+    return { category: '-', parent: '-', subParent: '-' };
+  }
+  
+  const job = jobs.find(j => j.id === jobId || j.id === parseInt(jobId));
+  if (!job) {
+    return { category: '-', parent: '-', subParent: '-' };
+  }
+
+  const category = job.category || '-';
+  const parent = job.parent || '-';
+  const subParent = job.sub_parent || '-';
+
+  return { category, parent, subParent };
+};
+
+export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = [], onOpenComments, dragListeners }) => {
+  const [localCommentCount, setLocalCommentCount] = useState(task.comment_count || 0);
+  const taskIdRef = useRef(task.id);
+
+  // Only update count when viewing a DIFFERENT task or when server data is higher
+  useEffect(() => {
+    const serverCount = task.comment_count || 0;
+    
+    // If different task, reset count
+    if (taskIdRef.current !== task.id) {
+      taskIdRef.current = task.id;
+      setLocalCommentCount(serverCount);
+    } 
+    // If same task, only update if server has MORE comments (fresh data from fetch)
+    else if (serverCount > localCommentCount) {
+      setLocalCommentCount(serverCount);
+    }
+  }, [task.id, task.comment_count, localCommentCount]);
   const statusIcons = {
     completed: <CheckCircle2 size={18} className="text-green-600" />,
     in_progress: <Clock size={18} className="text-blue-600 animate-pulse" />,
@@ -51,6 +90,18 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant }) => {
     }
   };
 
+  const handleCommentClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!isDragging && onOpenComments) {
+      // Pass callback to update local count
+      onOpenComments(task, (newCount) => {
+        setLocalCommentCount(newCount);
+      });
+    } else {
+    }
+  };
+
   const colors = priorityColors[task.priority] || priorityColors.low;
 
   const statusStyles = {
@@ -71,18 +122,23 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant }) => {
 
   const overlayClass = overlayGradients[statusVariant] ?? 'from-transparent via-transparent to-transparent';
 
+  const hierarchy = getJobHierarchy(task.job_id, jobs);
+
   return (
     <div
       onDoubleClick={handleDoubleClick}
-      className={`rounded-2xl shadow-sm ${variantClasses} p-4 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-grab active:cursor-grabbing group relative overflow-hidden ${
+      className={`rounded-2xl shadow-sm ${variantClasses} p-4 hover:shadow-xl hover:scale-105 transition-all duration-300 group relative overflow-hidden ${
         isDragging ? 'opacity-50 scale-95' : ''
       } ${colors.border} hover:border-l-[6px] text-current`}
     >
       {/* Animated Background Gradient Overlay */}
       <div className={`absolute inset-0 bg-gradient-to-r ${overlayClass} opacity-40 transition-opacity duration-300 group-hover:opacity-60`}></div>
 
-      {/* Header with Title & Actions */}
-      <div className="flex items-start justify-between mb-3 relative z-10">
+      {/* Header with Title & Actions - DRAG HANDLE */}
+      <div 
+        {...(dragListeners || {})}
+        className="flex items-start justify-between mb-3 relative z-10 cursor-grab active:cursor-grabbing"
+      >
         <div className="flex-1 pr-2">
           <h3 className={`font-bold text-gray-900 text-sm mb-1 line-clamp-2 ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
             {task.title}
@@ -91,13 +147,32 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant }) => {
         </div>
       </div>
 
-      {/* Priority & Category Badges */}
-      <div className="flex flex-wrap gap-2 mb-3 relative z-10">
-        <span className={`text-xs px-2.5 py-1 rounded-full font-medium transition-all duration-200 ${colors.badge} group-hover:scale-110 transform`}>
-          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-        </span>
-        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-medium transition-all duration-200 group-hover:scale-110 transform">
-          {task.category}
+      {/* Job Hierarchy - Compact */}
+      <div className="mb-3 relative z-10">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2">
+          <FolderTree size={14} className="text-indigo-600 flex-shrink-0" />
+          <div className="flex items-center gap-1 text-xs font-medium text-gray-700 overflow-hidden">
+            {hierarchy.category !== '-' && <span className="text-indigo-700">{hierarchy.category}</span>}
+            {hierarchy.parent !== '-' && (
+              <>
+                <span className="text-gray-400">›</span>
+                <span className="text-purple-700">{hierarchy.parent}</span>
+              </>
+            )}
+            {hierarchy.subParent !== '-' && (
+              <>
+                <span className="text-gray-400">›</span>
+                <span className="text-pink-700">{hierarchy.subParent}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Priority Badge Only */}
+      <div className="flex items-center gap-2 mb-3 relative z-10">
+        <span className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all duration-200 ${colors.badge} group-hover:scale-105 transform shadow-sm`}>
+          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
         </span>
       </div>
 
@@ -117,13 +192,61 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant }) => {
           </div>
         </div>
 
-        {/* Assignee */}
-        {task.user_name && (
-          <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
-            <span className="text-xs text-gray-600 font-medium">{task.user_name}</span>
-            <div className="w-5 h-5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold transition-all duration-200 group-hover:scale-125 transform group-hover:shadow-md" title={task.user_name}>
-              {task.user_name.charAt(0).toUpperCase()}
+        {/* Plan By & Completed By */}
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100 text-xs text-gray-600">
+          {task.plan_by_name && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Plan by:</span>
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white text-xs font-bold">
+                  {task.plan_by_name.charAt(0).toUpperCase()}
+                </div>
+                <span>{task.plan_by_name}</span>
+              </div>
             </div>
+          )}
+          {task.completed_by_name && task.status === 'completed' && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-green-600">Completed by:</span>
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+                  {task.completed_by_name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-green-600">{task.completed_by_name}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Completed Date - Separate Row */}
+        {task.completed_date && task.status === 'completed' && (
+          <div className="flex items-center gap-1 text-xs text-green-600 pt-1">
+            <Calendar size={12} className="text-green-500" />
+            <span className="font-medium">Completed:</span>
+            <span>{formatDate(task.completed_date)}</span>
+          </div>
+        )}
+
+        {/* Comment Button */}
+        {onOpenComments && (
+          <div className="mt-3 pt-3 border-t border-gray-100 relative z-20">
+            <button
+              type="button"
+              onClick={handleCommentClick}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all duration-200 font-medium text-sm group/comment pointer-events-auto cursor-pointer relative"
+              style={{ pointerEvents: 'auto' }}
+            >
+              <MessageCircle size={16} className="group-hover/comment:scale-110 transition-transform" />
+              <span>View Comments</span>
+              {localCommentCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                  {localCommentCount}
+                </span>
+              )}
+            </button>
           </div>
         )}
       </div>

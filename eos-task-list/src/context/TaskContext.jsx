@@ -12,12 +12,12 @@ export const useTask = () => {
   return context;
 };
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:3000/api';
 
 export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { token, isAdmin } = useAuth();
+  const { token, isAdmin, user, users } = useAuth();
 
   const fetchTasks = useCallback(async () => {
     if (!token) return;
@@ -30,12 +30,12 @@ export const TaskProvider = ({ children }) => {
         }
       });
 
+
       if (!response.ok) throw new Error('Failed to fetch tasks');
 
       const data = await response.json();
       setTasks(data.tasks);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
     } finally {
       setLoading(false);
     }
@@ -43,6 +43,8 @@ export const TaskProvider = ({ children }) => {
 
   const addTask = useCallback(async (taskData, userId) => {
     const payload = isAdmin ? taskData : { ...taskData, user_id: userId };
+    
+    
     try {
       const response = await fetch(`${API_URL}/tasks`, {
         method: 'POST',
@@ -52,8 +54,12 @@ export const TaskProvider = ({ children }) => {
         },
         body: JSON.stringify(payload)
       });
+      
 
-      if (!response.ok) throw new Error('Failed to add task');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add task');
+      }
 
       const data = await response.json();
 
@@ -62,7 +68,6 @@ export const TaskProvider = ({ children }) => {
 
       return data.task;
     } catch (error) {
-      console.error('Error adding task:', error);
       throw error;
     }
   }, [isAdmin, token, fetchTasks]);
@@ -105,7 +110,6 @@ export const TaskProvider = ({ children }) => {
       }
     } catch (error) {
       setTasks(previousTasks);
-      console.error('Error updating task:', error);
       throw error;
     }
   }, [token]);
@@ -124,19 +128,36 @@ export const TaskProvider = ({ children }) => {
       // Refresh tasks
       await fetchTasks();
     } catch (error) {
-      console.error('Error deleting task:', error);
       throw error;
     }
   }, [token, fetchTasks]);
 
   const getUserTasks = useCallback((userId) => {
+    
     if (isAdmin) {
       // Admin can see all tasks
       return tasks;
     }
-    // Users can only see their own tasks
-    return tasks.filter(t => t.user_id === userId);
-  }, [isAdmin, tasks]);
+    
+    // Users can see tasks from their department
+    const currentUser = user || users.find(u => u.id === userId);
+    
+    if (!currentUser || !currentUser.department_id) {
+      // If no department, only show own tasks
+      const ownTasks = tasks.filter(t => t.user_id === userId);
+      return ownTasks;
+    }
+    
+    // Get all user IDs from same department
+    const departmentUserIds = users
+      .filter(u => u.department_id === currentUser.department_id)
+      .map(u => u.id);
+    
+    
+    // Return tasks from all users in same department
+    const deptTasks = tasks.filter(t => departmentUserIds.includes(t.user_id));
+    return deptTasks;
+  }, [isAdmin, tasks, user, users]);
 
   const getTaskById = useCallback((taskId) => {
     return tasks.find(t => t.id === taskId);
@@ -152,10 +173,13 @@ export const TaskProvider = ({ children }) => {
       if (!task) return;
 
       await updateTask(taskId, { status: newStatus });
+      
+      // Refresh tasks to get updated data (completed_by, completed_date, etc.)
+      await fetchTasks();
     } catch (error) {
-      console.error('Error moving task:', error);
+      // Error silently handled
     }
-  }, [getTaskById, updateTask]);
+  }, [getTaskById, updateTask, fetchTasks]);
 
   const value = useMemo(() => ({
     tasks,

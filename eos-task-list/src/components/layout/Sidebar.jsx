@@ -16,7 +16,13 @@ export const Sidebar = ({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'boards', label: 'Board', icon: LayoutGrid },
-    ...(isAdmin ? [{ id: 'users', label: 'User Management', icon: Users }] : []),
+    ...(isAdmin 
+      ? [
+          { id: 'users', label: 'User Management', icon: Users },
+          { id: 'jobs', label: 'Jobs', icon: LayoutGrid },
+        ] 
+      : []
+    ),
   ];
 
   const toggleCollapse = () => setIsCollapsed((prev) => !prev);

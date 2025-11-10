@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Header } from '../components/layout/Header';
 import { BoardView } from '../components/board/BoardView';
-import { TaskForm } from '../components/tasks/TaskForm';
+import { TaskForm, TaskTable } from '../components/tasks';
+// Remove JobManagement from user dashboard; jobs are admin-only
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
 import { Plus, ListTodo, CheckCircle2, AlertCircle, TrendingUp, FolderOpen, BarChart3, Sparkles, Search, Calendar, Users } from 'lucide-react';
@@ -43,7 +44,7 @@ const formatDate = (dateString) => {
 };
 
 export const UserDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, users } = useAuth();
   const { getUserTasks, addTask, updateTask, moveTask, fetchTasks } = useTask();
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
@@ -59,6 +60,11 @@ export const UserDashboard = () => {
   }, [fetchTasks]);
 
   const userTasks = getUserTasks(user.id);
+  
+  // Get department teammates count
+  const departmentTeammates = users.filter(u => 
+    u.department_id && u.department_id === user.department_id
+  );
 
   const handleAddTask = (status) => {
     setNewTaskStatus(status || 'plan');
@@ -220,6 +226,12 @@ export const UserDashboard = () => {
                           <p className="mt-3 text-sm leading-relaxed text-slate-500">
                             Review your current focus, upcoming deadlines, and overall momentum in one clean view.
                           </p>
+                          {user?.department_id && departmentTeammates.length > 1 && (
+                            <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 border border-blue-200">
+                              <Users size={14} />
+                              <span>Viewing {departmentTeammates.length} teammates from your department</span>
+                            </div>
+                          )}
                           <div className="mt-6 flex flex-wrap gap-3">
                             <button
                               onClick={() => handleAddTask('plan')}
@@ -321,9 +333,15 @@ export const UserDashboard = () => {
                   <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-500">Total Tasks</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-500">
+                          {user?.department_id && departmentTeammates.length > 1 ? 'Department Tasks' : 'Total Tasks'}
+                        </p>
                         <p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p>
-                        <p className="mt-2 text-xs text-slate-500">{stats.plan} in planning</p>
+                        <p className="mt-2 text-xs text-slate-500">
+                          {user?.department_id && departmentTeammates.length > 1 
+                            ? `${departmentTeammates.length} teammates` 
+                            : `${stats.plan} in planning`}
+                        </p>
                       </div>
                       <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
                         <ListTodo size={22} />
@@ -599,6 +617,7 @@ export const UserDashboard = () => {
                   tasks={userTasks}
                   onTaskClick={handleTaskClick}
                   onAddTask={handleAddTask}
+                  onRefreshTasks={fetchTasks}
                   onTaskMove={handleTaskMove}
                 />
               </div>
@@ -606,7 +625,7 @@ export const UserDashboard = () => {
 
             {/* Tasks List View */}
             {activeMenu === 'tasks' && (
-              <div className="space-y-10">
+              <div className="space-y-8">
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
                     <h2 className="text-3xl font-semibold text-slate-900">All Tasks</h2>
@@ -648,68 +667,16 @@ export const UserDashboard = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  {filteredTasks.length > 0 ? (
-                    filteredTasks.map(task => (
-                      <button
-                        key={task.id}
-                        onClick={() => handleTaskClick(task)}
-                        className="w-full text-left"
-                      >
-                        <div className="group rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
-                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="flex-1">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-500">
-                                  {task.status.replace('_', ' ')}
-                                </span>
-                                <span
-                                  className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
-                                    task.priority === 'high'
-                                      ? 'bg-rose-50 text-rose-600'
-                                      : task.priority === 'medium'
-                                      ? 'bg-amber-50 text-amber-600'
-                                      : 'bg-emerald-50 text-emerald-600'
-                                  }`}
-                                >
-                                  {task.priority} priority
-                                </span>
-                              </div>
-                              <h3 className="mt-3 text-lg font-semibold text-slate-900">
-                                {task.title}
-                              </h3>
-                              <p className="mt-1 text-sm text-slate-500 line-clamp-2">
-                                {task.description || 'No description provided'}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                              <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Calendar size={16} className="text-indigo-500" />
-                                <span className="font-semibold text-slate-700">{formatDate(task.due_date)}</span>
-                              </div>
-                              <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                                <Users size={16} className="text-indigo-500" />
-                                <span className="font-semibold text-slate-700">You</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                                <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                                ID-{task.id}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-slate-200 bg-white/60 py-16 text-center text-slate-500 shadow-sm">
-                      <ListTodo size={48} className="mx-auto text-slate-300" />
-                      <p className="mt-4 text-sm font-semibold">No tasks found</p>
-                      <p className="text-xs text-slate-400">Try a different status or clear your search.</p>
-                    </div>
-                  )}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <TaskTable 
+                    tasks={filteredTasks} 
+                    onTaskClick={handleTaskClick}
+                  />
                 </div>
               </div>
             )}
+
+            {/* Jobs are admin-only; no jobs view here */}
           </div>
         </main>
       </div>

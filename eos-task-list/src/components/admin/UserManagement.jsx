@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Edit2, Trash2, X, Users, Shield, AlertCircle, CheckCircle2, Search, Filter, UserPlus, UserCheck, UserCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, Shield, AlertCircle, CheckCircle2, Search, Filter, UserPlus, UserCheck, UserCircle, Building2 } from 'lucide-react';
+import { DepartmentManagement } from './DepartmentManagement';
 
 export const UserManagement = () => {
-  const { users, addUser, updateUser, deleteUser } = useAuth();
+  const { users, departments, addUser, updateUser, deleteUser } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ export const UserManagement = () => {
     userId: '',
     password: '',
     role: 'user',
+    department_id: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -27,6 +29,7 @@ export const UserManagement = () => {
         userId: user.userId,
         password: user.password,
         role: user.role,
+        department_id: user.department_id || ''
       });
     } else {
       setEditingUser(null);
@@ -35,6 +38,7 @@ export const UserManagement = () => {
         userId: '',
         password: '',
         role: 'user',
+        department_id: ''
       });
     }
     setIsFormOpen(true);
@@ -48,6 +52,7 @@ export const UserManagement = () => {
       userId: '',
       password: '',
       role: 'user',
+      department_id: ''
     });
     setError('');
     setSuccess('');
@@ -76,7 +81,8 @@ export const UserManagement = () => {
       }
     } else {
       // Add new user
-      const result = await addUser(formData.name, formData.userId, formData.password, formData.role);
+      const deptId = formData.department_id ? parseInt(formData.department_id) : null;
+      const result = await addUser(formData.name, formData.userId, formData.password, formData.role, deptId);
       if (result.success) {
         setSuccess('User added successfully!');
         setTimeout(() => {
@@ -123,6 +129,9 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-10">
+      {/* Department Management Section */}
+      <DepartmentManagement />
+
       {/* Hero */}
       <div className="rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-8 shadow-sm animate-slide-in-left stagger-1">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -405,6 +414,23 @@ export const UserManagement = () => {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
                   required
                 />
+              </div>
+
+              <div className="animate-slide-in-left stagger-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Department
+                </label>
+                <select
+                  name="department_id"
+                  value={formData.department_id}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+                >
+                  <option value="">Select department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="animate-slide-in-left stagger-5">

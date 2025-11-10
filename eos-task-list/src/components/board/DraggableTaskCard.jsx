@@ -2,7 +2,7 @@ import { useSortable, defaultAnimateLayoutChanges } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TaskCard } from '../tasks/TaskCard';
 
-export const DraggableTaskCard = ({ task, onTaskClick }) => {
+export const DraggableTaskCard = ({ task, onTaskClick, jobs = [], onOpenComments }) => {
   const animateLayoutChanges = (args) =>
     defaultAnimateLayoutChanges({
       ...args,
@@ -40,12 +40,11 @@ export const DraggableTaskCard = ({ task, onTaskClick }) => {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
       className={`
         transition-all duration-200 ease-out
         ${isDragging
-          ? 'cursor-grabbing shadow-2xl z-50'
-          : 'cursor-grab hover:shadow-lg hover:-translate-y-1'
+          ? 'shadow-2xl z-50'
+          : 'hover:shadow-lg hover:-translate-y-1'
         }
         ${isOver ? 'ring-2 ring-indigo-500' : ''}
       `}
@@ -55,6 +54,9 @@ export const DraggableTaskCard = ({ task, onTaskClick }) => {
         onTaskClick={onTaskClick}
         isDragging={isDragging}
         statusVariant={task.status}
+        jobs={jobs}
+        onOpenComments={onOpenComments}
+        dragListeners={listeners}
       />
     </div>
   );

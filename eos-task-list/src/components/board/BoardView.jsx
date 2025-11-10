@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 import {
   DndContext,
   DragOverlay,
@@ -17,9 +19,31 @@ import {
 import { TaskCard } from '../tasks/TaskCard';
 import { DroppableColumn } from './DroppableColumn';
 import { DraggableTaskCard } from './DraggableTaskCard';
+import { CommentModal } from '../comments';
 
-export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDrag = true }) => {
+export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDrag = true, onRefreshTasks }) => {
   const [activeId, setActiveId] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [updateCountCallback, setUpdateCountCallback] = useState(null);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/jobs`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setJobs(data.jobs || []);
+        }
+      } catch (err) {
+      }
+    };
+    fetchJobs();
+  }, []);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -101,39 +125,66 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
 
   if (!enableDrag) {
     return (
-      <div className="flex gap-6 overflow-x-auto pb-6">
-        {columns.map((column) => {
-          const columnTasks = getTasksByStatus(column.id);
+      <>
+        <div className="flex gap-6 overflow-x-auto pb-6">
+          {columns.map((column) => {
+            const columnTasks = getTasksByStatus(column.id);
 
-          return (
-            <div
-              key={column.id}
-              className="flex-shrink-0 w-96 rounded-lg p-4 min-h-96 bg-transparent"
-            >
-              <div className={`${column.color} rounded-lg p-4 mb-4`}>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">{column.label}</h3>
-                  <span className="text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded">
-                    {columnTasks.length}
-                  </span>
+            return (
+              <div
+                key={column.id}
+                className="flex-shrink-0 w-96 rounded-lg p-4 min-h-96 bg-transparent"
+              >
+                <div className={`${column.color} rounded-lg p-4 mb-4`}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">{column.label}</h3>
+                    <span className="text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded">
+                      {columnTasks.length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 min-h-96">
+                  {columnTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onTaskClick={onTaskClick}
+                      isDragging={false}
+                      statusVariant={task.status}
+                      jobs={jobs}
+                      onOpenComments={(task, updateCallback) => {
+                        setSelectedTask(task);
+                        setUpdateCountCallback(() => updateCallback);
+                        setCommentModalOpen(true);
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
+            );
+          })}
+        </div>
 
-              <div className="space-y-3 min-h-96">
-                {columnTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onTaskClick={onTaskClick}
-                    isDragging={false}
-                    statusVariant={task.status}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+        {/* Comment Modal - Must be outside DndContext */}
+        <CommentModal
+          isOpen={commentModalOpen}
+          onClose={() => {
+            setCommentModalOpen(false);
+            setSelectedTask(null);
+            setUpdateCountCallback(null);
+          }}
+          task={selectedTask}
+          onCommentAdded={(newCount) => {
+            if (updateCountCallback) {
+              updateCountCallback(newCount);
+            }
+            if (onRefreshTasks) {
+              onRefreshTasks();
+            }
+          }}
+        />
+      </>
     );
   }
 
@@ -168,6 +219,12 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
                 onTaskClick={onTaskClick}
                 onAddTask={typeof onAddTask === 'function' ? () => onAddTask(column.id) : undefined}
                 activeStatus={activeStatus}
+                jobs={jobs}
+                onOpenComments={(task, updateCallback) => {
+                  setSelectedTask(task);
+                  setUpdateCountCallback(() => updateCallback);
+                  setCommentModalOpen(true);
+                }}
               />
             </SortableContext>
           );
@@ -177,10 +234,29 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
       <DragOverlay dropAnimation={dropAnimation}>
         {activeTask ? (
           <div className="w-96 shadow-2xl rounded-lg overflow-hidden opacity-90">
-            <TaskCard task={activeTask} onTaskClick={() => {}} isDragging={true} statusVariant={activeTask.status} />
+            <TaskCard task={activeTask} onTaskClick={() => {}} isDragging={true} statusVariant={activeTask.status} jobs={jobs} />
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Comment Modal */}
+      <CommentModal
+        isOpen={commentModalOpen}
+        onClose={() => {
+          setCommentModalOpen(false);
+          setSelectedTask(null);
+          setUpdateCountCallback(null);
+        }}
+        task={selectedTask}
+        onCommentAdded={(newCount) => {
+          if (updateCountCallback) {
+            updateCountCallback(newCount);
+          }
+          if (onRefreshTasks) {
+            onRefreshTasks();
+          }
+        }}
+      />
     </DndContext>
   );
 };

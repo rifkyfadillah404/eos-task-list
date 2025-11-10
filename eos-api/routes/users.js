@@ -5,12 +5,44 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all users (admin only)
-router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
+// Get users - Updated to allow department filtering
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const pool = getPool();
-    const result = await pool.request()
-      .query('SELECT id, name, userId, role, created_at FROM users ORDER BY created_at DESC');
+    let query = '';
+    const request = pool.request();
+
+    if (req.user.role === 'admin') {
+      query = `
+        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id,
+               d.name as department_name
+        FROM users u
+        LEFT JOIN departments d ON d.id = u.department_id
+        ORDER BY u.created_at DESC
+      `;
+    } else {
+      const userResult = await pool.request()
+        .input('userId', req.user.id)
+        .query('SELECT department_id FROM users WHERE id = @userId');
+      
+      const userDeptId = userResult.recordset[0]?.department_id;
+      
+      if (!userDeptId) {
+        return res.json({ success: true, users: [] });
+      }
+      
+      request.input('department_id', userDeptId);
+      query = `
+        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id,
+               d.name as department_name
+        FROM users u
+        LEFT JOIN departments d ON d.id = u.department_id
+        WHERE u.department_id = @department_id
+        ORDER BY u.created_at DESC
+      `;
+    }
+
+    const result = await request.query(query);
 
     res.json({
       success: true,
@@ -22,7 +54,6 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 // Get user by ID
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
@@ -36,7 +67,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const pool = getPool();
     const result = await pool.request()
       .input('id', parseInt(id))
-      .query('SELECT id, name, userId, role, created_at FROM users WHERE id = @id');
+      .query(`
+        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id,
+               d.name as department_name
+        FROM users u
+        LEFT JOIN departments d ON d.id = u.department_id
+        WHERE u.id = @id
+      `);
 
     const user = result.recordset[0];
 
@@ -55,7 +92,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Add user (admin only)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, userId, password, role } = req.body;
+    const { name, userId, password, role, department_id } = req.body;
 
     if (!name || !userId || !password) {
       return res.status(400).json({ error: 'Name, user ID, and password required' });
@@ -81,9 +118,10 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
       .input('userId', userId)
       .input('password', hashedPassword)
       .input('role', role || 'user')
+      .input('department_id', department_id || null)
       .query(`
-        INSERT INTO users (name, userId, password, role)
-        VALUES (@name, @userId, @password, @role);
+        INSERT INTO users (name, userId, password, role, department_id)
+        VALUES (@name, @userId, @password, @role, @department_id);
         SELECT SCOPE_IDENTITY() as id;
       `);
 
@@ -96,7 +134,8 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
         id: newUserId,
         name,
         userId,
-        role: role || 'user'
+        role: role || 'user',
+        department_id: department_id || null
       }
     });
 
@@ -110,7 +149,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, userId, password, role } = req.body;
+    const { name, userId, password, role, department_id } = req.body;
 
     const pool = getPool();
 
@@ -136,6 +175,10 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
       updateFields.push('role = @role');
       request.input('role', role);
     }
+    if (department_id !== undefined) {
+      updateFields.push('department_id = @department_id');
+      request.input('department_id', department_id || null);
+    }
 
     if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -147,7 +190,9 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
       UPDATE users
       SET ${updateFields.join(', ')}
       WHERE id = @id;
-      SELECT id, name, userId, role FROM users WHERE id = @id;
+      SELECT u.id, u.name, u.userId, u.role, u.department_id, d.name as department_name
+      FROM users u LEFT JOIN departments d ON d.id = u.department_id
+      WHERE u.id = @id;
     `;
 
     const result = await request.query(query);

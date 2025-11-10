@@ -11,11 +11,12 @@ export const useAuth = () => {
   return context;
 };
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:3000/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -37,6 +38,7 @@ export const AuthProvider = ({ children }) => {
         await Promise.all([
           getCurrentUser(savedToken),
           fetchAllUsers(savedToken),
+          fetchDepartments(savedToken),
         ]);
       } finally {
         setInitializing(false);
@@ -60,7 +62,6 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       return data.user;
     } catch (err) {
-      console.error('Error fetching user:', err);
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
@@ -81,7 +82,21 @@ export const AuthProvider = ({ children }) => {
         setUsers(data.users);
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
+    }
+  };
+
+  const fetchDepartments = async (authToken) => {
+    try {
+      const response = await fetch(`${API_URL}/departments`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDepartments(data.departments || []);
+      }
+    } catch (err) {
     }
   };
 
@@ -126,7 +141,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
-  const addUser = async (name, userId, password, role = 'user') => {
+  const addUser = async (name, userId, password, role = 'user', department_id = null) => {
     try {
       const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
@@ -134,7 +149,7 @@ export const AuthProvider = ({ children }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name, userId, password, role })
+        body: JSON.stringify({ name, userId, password, role, department_id })
       });
 
       if (!response.ok) {
@@ -146,7 +161,10 @@ export const AuthProvider = ({ children }) => {
 
       // Refresh users list
       if (user?.role === 'admin') {
-        await fetchAllUsers(token);
+        await Promise.all([
+          fetchAllUsers(token),
+          fetchDepartments(token),
+        ]);
       }
 
       return { success: true, user: data.user };
@@ -175,7 +193,6 @@ export const AuthProvider = ({ children }) => {
       await fetchAllUsers(token);
       return true;
     } catch (err) {
-      console.error('Error updating user:', err);
       return false;
     }
   };
@@ -197,7 +214,6 @@ export const AuthProvider = ({ children }) => {
       await fetchAllUsers(token);
       return true;
     } catch (err) {
-      console.error('Error deleting user:', err);
       return false;
     }
   };
@@ -205,6 +221,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     users,
+    departments,
     token,
     loading,
     error,
@@ -214,6 +231,7 @@ export const AuthProvider = ({ children }) => {
     addUser,
     updateUser,
     deleteUser,
+    fetchDepartments,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
   };

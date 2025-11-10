@@ -59,14 +59,46 @@ async function initializeDatabase() {
     console.log('🔄 Creating tables...');
 
     // Drop existing tables if they exist (to ensure fresh schema)
+    // Handle all foreign key constraints that reference users or tasks before dropping tables
     await connection.request().query(`
+      -- Drop all foreign key constraints that reference users or tasks tables
+      DECLARE @sql NVARCHAR(MAX) = '';
+      SELECT @sql = @sql + 'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(parent_obj.schema_id)) + '.' + QUOTENAME(OBJECT_NAME(parent_obj.object_id)) + 
+                   ' DROP CONSTRAINT ' + QUOTENAME(fk.name) + ';'
+      FROM sys.foreign_keys fk
+      INNER JOIN sys.objects parent_obj ON fk.parent_object_id = parent_obj.object_id
+      INNER JOIN sys.objects referenced_obj ON fk.referenced_object_id = referenced_obj.object_id
+      WHERE referenced_obj.name IN ('users', 'tasks');
+      
+      EXEC sp_executesql @sql;
+      
+      -- Now drop tables in the correct order (dependent table first)
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'comments')
+      DROP TABLE comments;
       IF EXISTS (SELECT * FROM sys.tables WHERE name = 'tasks')
       DROP TABLE tasks;
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'jobs')
+      DROP TABLE jobs;
       IF EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
       DROP TABLE users;
+      IF EXISTS (SELECT * FROM sys.tables WHERE name = 'departments')
+      DROP TABLE departments;
     `);
 
     console.log('🔄 Dropped existing tables');
+
+    // Create Departments table (master data)
+    await connection.request().query(`
+      CREATE TABLE departments (
+        id INT PRIMARY KEY IDENTITY(1,1),
+        name NVARCHAR(150) NOT NULL,
+        code NVARCHAR(50) NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE()
+      )
+    `);
+
+    console.log('✅ Departments table created');
 
     // Create Users table
     await connection.request().query(`
@@ -76,12 +108,32 @@ async function initializeDatabase() {
         userId NVARCHAR(255) NOT NULL UNIQUE,
         password NVARCHAR(MAX) NOT NULL,
         role NVARCHAR(50) NOT NULL DEFAULT 'user',
+        department_id INT NULL,
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE()
+        ,FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
       )
     `);
 
     console.log('✅ Users table created');
+
+    // Create Jobs table (master job data)
+    await connection.request().query(`
+      CREATE TABLE jobs (
+        id INT PRIMARY KEY IDENTITY(1,1),
+        user_id INT NOT NULL,
+        category NVARCHAR(100) NOT NULL,
+        parent NVARCHAR(100) NULL,
+        sub_parent NVARCHAR(100),
+        department_id INT NOT NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
+      )
+    `);
+
+    console.log('✅ Jobs table created');
 
     // Create Tasks table
     await connection.request().query(`
@@ -92,38 +144,44 @@ async function initializeDatabase() {
         description NVARCHAR(MAX),
         priority NVARCHAR(50) DEFAULT 'medium',
         category NVARCHAR(100),
-        due_date DATE,
+        due_date DATETIME,
         status NVARCHAR(50) DEFAULT 'todo',
+        job_id INT NULL,
+        plan_by INT NULL,
+        completed_by INT NULL,
+        completed_date DATETIME NULL,
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (plan_by) REFERENCES users(id) ON DELETE NO ACTION,
+        FOREIGN KEY (completed_by) REFERENCES users(id) ON DELETE NO ACTION
       )
     `);
 
     console.log('✅ Tasks table created');
 
-    // Insert demo users
+    // Create Comments table
     await connection.request().query(`
-      INSERT INTO users (name, userId, password, role) VALUES
-      ('John Admin', 'admin', '$2a$10$YourHashedPasswordHere', 'admin'),
-      ('Sarah User', 'sarah', '$2a$10$YourHashedPasswordHere', 'user'),
-      ('Mike User', 'mike', '$2a$10$YourHashedPasswordHere', 'user')
+      CREATE TABLE comments (
+        id INT PRIMARY KEY IDENTITY(1,1),
+        task_id INT NOT NULL,
+        user_id INT NOT NULL,
+        comment_text NVARCHAR(MAX) NOT NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION
+      )
     `);
 
-    console.log('✅ Demo users inserted');
+    console.log('✅ Comments table created');
 
-    // Insert demo tasks
+    // Insert only admin user (no demo data)
     await connection.request().query(`
-      INSERT INTO tasks (user_id, title, description, priority, category, due_date, status) VALUES
-      (2, 'Design homepage mockup', 'Create a responsive homepage design', 'high', 'Design', '2025-11-05', 'in_progress'),
-      (3, 'Set up database schema', 'Design and implement PostgreSQL schema', 'high', 'Backend', '2025-11-01', 'plan'),
-      (2, 'Integrate payment gateway', 'Add Stripe integration', 'medium', 'Backend', '2025-11-10', 'plan'),
-      (3, 'Fix login bug', 'Users cannot login with email', 'high', 'Bug', '2025-10-30', 'in_progress'),
-      (2, 'Write API documentation', 'Document all API endpoints', 'low', 'Documentation', '2025-11-15', 'completed'),
-      (3, 'Optimize image loading', 'Implement lazy loading for images', 'medium', 'Frontend', '2025-11-08', 'completed')
+      INSERT INTO users (name, userId, password, role, department_id) VALUES
+      ('Admin', 'admin', '$2a$10$YourHashedPasswordHere', 'admin', NULL)
     `);
 
-    console.log('✅ Demo tasks inserted');
+    console.log('✅ Admin user created (username: admin)');
 
     console.log('✅ Database initialization completed successfully!');
 

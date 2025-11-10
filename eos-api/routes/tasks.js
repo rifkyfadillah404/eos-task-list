@@ -4,7 +4,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all tasks (for admin) or user's tasks
+// Get all tasks (for admin) or department tasks (for users)
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const pool = getPool();
@@ -12,29 +12,61 @@ router.get('/', authMiddleware, async (req, res) => {
     let request = pool.request();
 
     if (req.user.role === 'admin') {
-      // Admin can see all tasks with user info
       query = `
-        SELECT
-          t.id, t.user_id, t.title, t.description, t.priority,
-          t.category, t.due_date, t.status, t.created_at,
-          u.name as user_name
+        SELECT t.id, t.user_id, t.title, t.description, t.priority,
+               t.category, t.due_date, t.status, t.created_at, t.job_id,
+               t.plan_by, t.completed_by, t.completed_date,
+               u.name as user_name,
+               planner.name as plan_by_name,
+               completer.name as completed_by_name
         FROM tasks t
         JOIN users u ON t.user_id = u.id
+        LEFT JOIN users planner ON t.plan_by = planner.id
+        LEFT JOIN users completer ON t.completed_by = completer.id
         ORDER BY t.created_at DESC
       `;
     } else {
-      // Users can see their own tasks with user info
-      query = `
-        SELECT
-          t.id, t.user_id, t.title, t.description, t.priority,
-          t.category, t.due_date, t.status, t.created_at,
-          u.name as user_name
-        FROM tasks t
-        JOIN users u ON t.user_id = u.id
-        WHERE t.user_id = @userId
-        ORDER BY t.created_at DESC
-      `;
-      request.input('userId', req.user.id);
+      const userResult = await pool.request()
+        .input('userId', req.user.id)
+        .query('SELECT department_id FROM users WHERE id = @userId');
+      
+      const userDeptId = userResult.recordset[0]?.department_id;
+      
+      if (!userDeptId) {
+        query = `
+          SELECT t.id, t.user_id, t.title, t.description, t.priority,
+                 t.category, t.due_date, t.status, t.created_at, t.job_id,
+                 t.plan_by, t.completed_by, t.completed_date,
+                 u.name as user_name,
+                 planner.name as plan_by_name,
+                 completer.name as completed_by_name,
+                 (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id) as comment_count
+          FROM tasks t
+          JOIN users u ON t.user_id = u.id
+          LEFT JOIN users planner ON t.plan_by = planner.id
+          LEFT JOIN users completer ON t.completed_by = completer.id
+          WHERE t.user_id = @userId
+          ORDER BY t.created_at DESC
+        `;
+        request.input('userId', req.user.id);
+      } else {
+        query = `
+          SELECT t.id, t.user_id, t.title, t.description, t.priority,
+                 t.category, t.due_date, t.status, t.created_at, t.job_id,
+                 t.plan_by, t.completed_by, t.completed_date,
+                 u.name as user_name,
+                 planner.name as plan_by_name,
+                 completer.name as completed_by_name,
+                 (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id) as comment_count
+          FROM tasks t
+          JOIN users u ON t.user_id = u.id
+          LEFT JOIN users planner ON t.plan_by = planner.id
+          LEFT JOIN users completer ON t.completed_by = completer.id
+          WHERE u.department_id = @departmentId
+          ORDER BY t.created_at DESC
+        `;
+        request.input('departmentId', userDeptId);
+      }
     }
 
     const result = await request.query(query);
@@ -82,25 +114,40 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create task
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, priority, category, due_date, status } = req.body;
+    const { title, description, priority, category, due_date, status, job_id, user_id } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
     const pool = getPool();
+    
+    // For admin: can assign to any user, otherwise assign to self
+    const assignedUserId = req.user.role === 'admin' && user_id ? user_id : req.user.id;
+
+    // Parse due_date to proper format for SQL Server
+    let parsedDueDate = null;
+    if (due_date) {
+      try {
+        parsedDueDate = new Date(due_date.replace(' ', 'T')).toISOString();
+      } catch (err) {
+        parsedDueDate = null;
+      }
+    }
 
     const result = await pool.request()
-      .input('user_id', req.user.id)
+      .input('user_id', assignedUserId)
       .input('title', title)
       .input('description', description || '')
       .input('priority', priority || 'medium')
       .input('category', category || 'General')
-      .input('due_date', due_date || null)
+      .input('due_date', parsedDueDate)
       .input('status', status || 'todo')
+      .input('job_id', job_id || null)
+      .input('plan_by', req.user.id)
       .query(`
-        INSERT INTO tasks (user_id, title, description, priority, category, due_date, status)
-        VALUES (@user_id, @title, @description, @priority, @category, @due_date, @status);
+        INSERT INTO tasks (user_id, title, description, priority, category, due_date, status, job_id, plan_by)
+        VALUES (@user_id, @title, @description, @priority, @category, @due_date, @status, @job_id, @plan_by);
         SELECT SCOPE_IDENTITY() as id;
       `);
 
@@ -117,7 +164,8 @@ router.post('/', authMiddleware, async (req, res) => {
         priority,
         category,
         due_date,
-        status
+        status,
+        job_id: job_id || null
       }
     });
 
@@ -131,21 +179,38 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, priority, category, due_date, status } = req.body;
+    const { title, description, priority, category, due_date, status, job_id } = req.body;
 
     const pool = getPool();
 
-    // Check task ownership
-    const task = await pool.request()
+    // Check task ownership or same department
+    const taskQuery = await pool.request()
       .input('id', parseInt(id))
-      .query('SELECT user_id FROM tasks WHERE id = @id');
+      .query(`
+        SELECT t.user_id, t.status as current_status, u.department_id 
+        FROM tasks t
+        JOIN users u ON t.user_id = u.id
+        WHERE t.id = @id
+      `);
 
-    if (task.recordset.length === 0) {
+    if (taskQuery.recordset.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (req.user.role !== 'admin' && task.recordset[0].user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
+    const task = taskQuery.recordset[0];
+
+    // Authorization: admin, task owner, or same department member
+    if (req.user.role !== 'admin') {
+      if (task.user_id !== req.user.id) {
+        // Check if same department
+        const userDept = await pool.request()
+          .input('userId', req.user.id)
+          .query('SELECT department_id FROM users WHERE id = @userId');
+        
+        if (!userDept.recordset[0] || userDept.recordset[0].department_id !== task.department_id) {
+          return res.status(403).json({ error: 'Unauthorized - not in same department' });
+        }
+      }
     }
 
     // Build update query
@@ -176,6 +241,17 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (status !== undefined) {
       updateFields.push('status = @status');
       request.input('status', status);
+      
+      // If status changed to completed, set completed_by and completed_date
+      if (status === 'completed' && task.current_status !== 'completed') {
+        updateFields.push('completed_by = @completed_by');
+        updateFields.push('completed_date = GETDATE()');
+        request.input('completed_by', req.user.id);
+      }
+    }
+    if (job_id !== undefined) {
+      updateFields.push('job_id = @job_id');
+      request.input('job_id', job_id);
     }
 
     if (updateFields.length === 0) {

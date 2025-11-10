@@ -26,7 +26,7 @@ const accentMap = {
   },
 };
 
-export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeStatus }) => {
+export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeStatus, jobs = [], onOpenComments }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
     data: {
@@ -91,6 +91,8 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
             key={task.id}
             task={task}
             onTaskClick={onTaskClick}
+            jobs={jobs}
+            onOpenComments={onOpenComments}
           />
         ))}
 
