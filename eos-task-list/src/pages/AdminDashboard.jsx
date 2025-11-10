@@ -7,17 +7,17 @@ import { UserManagement } from '../components/admin/UserManagement';
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
 import { TaskForm } from '../components/tasks';
+import { useTaskStats } from '../hooks/useTaskStats';
+import { StatCard, FilterButtons, CompletionRadial } from '../components/dashboard';
 import {
   ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis,
   ComposedChart,
   Area,
   Line,
   RadarChart,
   Radar,
   PolarGrid,
+  PolarAngleAxis,
   PolarRadiusAxis,
   BarChart,
   Bar,
@@ -28,7 +28,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { BarChart3, TrendingUp, ListTodo, CheckCircle2, AlertCircle, Users, Search, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, ListTodo, CheckCircle2, AlertCircle, Users, Search } from 'lucide-react';
 import { JobManagement } from '../components/jobs';
 
 const formatDate = (dateString) => {
@@ -139,14 +139,8 @@ export const AdminDashboard = () => {
     moveTask(taskId, newStatus);
   };
 
-  // Get task statistics
-  const stats = {
-    total: allTasks.length,
-    plan: allTasks.filter(t => t.status === 'plan').length,
-    inProgress: allTasks.filter(t => t.status === 'in_progress').length,
-    completed: allTasks.filter(t => t.status === 'completed').length,
-    high: allTasks.filter(t => t.priority === 'high').length,
-  };
+  // Use custom hook for statistics
+  const stats = useTaskStats(allTasks);
 
   // Chart data for status distribution
   const statusChartData = [
@@ -168,10 +162,6 @@ export const AdminDashboard = () => {
     tasks: allTasks.filter(t => t.user_id === u.id).length,
     completed: allTasks.filter(t => t.user_id === u.id && t.status === 'completed').length
   })) || [];
-
-  const completionRate = allTasks.length > 0
-    ? Math.round((stats.completed / stats.total) * 100)
-    : 0;
 
   const statusRadarData = statusChartData.map(item => ({
     ...item,
@@ -197,7 +187,7 @@ export const AdminDashboard = () => {
   const completionRadialData = [
     {
       name: 'Completion',
-      value: completionRate,
+      value: stats.completionRate,
       fill: '#34d399'
     }
   ];
@@ -254,104 +244,43 @@ export const AdminDashboard = () => {
                       </div>
 
                       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">Total Tasks</p>
-                              <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.total}</p>
-                            </div>
-                            <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                              <ListTodo size={22} />
-                            </div>
-                          </div>
-                          <p className="mt-4 text-xs text-slate-500">Full queue assigned across your team.</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-500">In Progress</p>
-                              <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.inProgress}</p>
-                            </div>
-                            <div className="rounded-xl bg-sky-100 p-3 text-sky-600">
-                              <TrendingUp size={22} />
-                            </div>
-                          </div>
-                          <p className="mt-4 text-xs text-slate-500">{stats.total > 0 ? ((stats.inProgress / stats.total) * 100).toFixed(0) : 0}% of all tasks currently moving.</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-500">Completed</p>
-                              <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.completed}</p>
-                            </div>
-                            <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
-                              <CheckCircle2 size={22} />
-                            </div>
-                          </div>
-                          <p className="mt-4 text-xs text-slate-500">Achievement rate at {completionRate}% this cycle.</p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-500">High Priority</p>
-                              <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.high}</p>
-                            </div>
-                            <div className="rounded-xl bg-rose-100 p-3 text-rose-600">
-                              <AlertCircle size={22} />
-                            </div>
-                          </div>
-                          <p className="mt-4 text-xs text-slate-500">{stats.total > 0 ? ((stats.high / stats.total) * 100).toFixed(0) : 0}% of items require fast attention.</p>
-                        </div>
+                        <StatCard
+                          title="Total Tasks"
+                          value={stats.total}
+                          subtitle="Full queue assigned across your team."
+                          icon={ListTodo}
+                          color="indigo"
+                        />
+                        <StatCard
+                          title="In Progress"
+                          value={stats.inProgress}
+                          subtitle={`${stats.total > 0 ? ((stats.inProgress / stats.total) * 100).toFixed(0) : 0}% of all tasks currently moving.`}
+                          icon={TrendingUp}
+                          color="sky"
+                        />
+                        <StatCard
+                          title="Completed"
+                          value={stats.completed}
+                          subtitle={`Achievement rate at ${stats.completionRate}% this cycle.`}
+                          icon={CheckCircle2}
+                          color="emerald"
+                        />
+                        <StatCard
+                          title="High Priority"
+                          value={stats.high}
+                          subtitle={`${stats.total > 0 ? ((stats.high / stats.total) * 100).toFixed(0) : 0}% of items require fast attention.`}
+                          icon={AlertCircle}
+                          color="rose"
+                        />
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-100 bg-white shadow-lg">
-                    <div className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Completion Index</p>
-                          <h3 className="mt-3 text-2xl font-semibold text-slate-900">{completionRate}%</h3>
-                          <p className="mt-1 text-xs text-slate-500">{stats.completed} done · {stats.total - stats.completed} remaining</p>
-                        </div>
-                        <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-600">Updated live</div>
-                      </div>
-                    </div>
-                    <div className="relative -mt-4 h-64 pb-6">
-                      <ResponsiveContainer>
-                        <RadialBarChart
-                          innerRadius="55%"
-                          outerRadius="100%"
-                          data={completionRadialData}
-                          startAngle={90}
-                          endAngle={-270}
-                        >
-                          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                          <RadialBar
-                            minAngle={15}
-                            dataKey="value"
-                            cornerRadius={24}
-                            fill="#34d399"
-                            clockWise
-                          />
-                          <Tooltip
-                            formatter={(value) => [`${value}%`, 'Completion']}
-                            contentStyle={{
-                              borderRadius: 12,
-                              border: '1px solid #e2e8f0',
-                              boxShadow: '0 20px 45px rgba(15, 23, 42, 0.12)'
-                            }}
-                          />
-                        </RadialBarChart>
-                      </ResponsiveContainer>
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <p className="text-4xl font-semibold text-slate-900">{completionRate}%</p>
-                          <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Success Rate</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <CompletionRadial
+                    completionRate={stats.completionRate}
+                    completed={stats.completed}
+                    remaining={stats.total - stats.completed}
+                  />
                 </section>
 
                 <section className="grid grid-cols-1 gap-4 lg:grid-cols-3 animate-slide-in-left stagger-2">
@@ -706,7 +635,7 @@ export const AdminDashboard = () => {
                   </div>
                   <div className="card p-4 bg-gradient-to-br from-green-50 to-green-100 border-l-4 border-green-500">
                     <p className="text-xs text-green-700 font-semibold mb-1">Completion Rate</p>
-                    <p className="text-2xl font-bold text-green-900">{completionRate}%</p>
+                    <p className="text-2xl font-bold text-green-900">{stats.completionRate}%</p>
                     <p className="text-xs text-green-600 mt-2">{stats.completed} completed</p>
                   </div>
                   <div className="card p-4 bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-500">
@@ -727,7 +656,7 @@ export const AdminDashboard = () => {
                     </div>
                     <div className="space-y-4">
                       <div className="text-center">
-                        <p className="text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{completionRate}%</p>
+                        <p className="text-5xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{stats.completionRate}%</p>
                       </div>
                       <div className="w-full bg-green-200 rounded-full h-4 overflow-hidden shadow-inner">
                         <div

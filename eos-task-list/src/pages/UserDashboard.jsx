@@ -3,10 +3,11 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { Header } from '../components/layout/Header';
 import { BoardView } from '../components/board/BoardView';
 import { TaskForm, TaskTable } from '../components/tasks';
-// Remove JobManagement from user dashboard; jobs are admin-only
 import { useAuth } from '../context/AuthContext';
 import { useTask } from '../context/TaskContext';
-import { Plus, ListTodo, CheckCircle2, AlertCircle, TrendingUp, FolderOpen, BarChart3, Sparkles, Search, Calendar, Users } from 'lucide-react';
+import { useTaskStats } from '../hooks/useTaskStats';
+import { StatCard, CompletionRadial } from '../components/dashboard';
+import { Plus, ListTodo, CheckCircle2, AlertCircle, TrendingUp, FolderOpen, BarChart3, Sparkles, Search, Users } from 'lucide-react';
 import {
   ResponsiveContainer,
   PieChart,
@@ -17,10 +18,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis
+  Tooltip
 } from 'recharts';
 
 const formatDate = (dateString) => {
@@ -91,35 +89,16 @@ export const UserDashboard = () => {
     moveTask(taskId, newStatus);
   };
 
-  const stats = {
-    total: userTasks.length,
-    plan: 0,
-    inProgress: 0,
-    completed: 0,
-    high: 0,
-    medium: 0,
-    low: 0,
-  };
+  // Use custom hook for statistics
+  const stats = useTaskStats(userTasks);
 
+  // Category breakdown for charts
   const categoriesMap = new Map();
-
   userTasks.forEach((task) => {
-    if (task.status === 'plan') stats.plan += 1;
-    else if (task.status === 'in_progress') stats.inProgress += 1;
-    else if (task.status === 'completed') stats.completed += 1;
-
-    if (task.priority === 'high') stats.high += 1;
-    else if (task.priority === 'medium') stats.medium += 1;
-    else if (task.priority === 'low') stats.low += 1;
-
     if (task.category) {
       categoriesMap.set(task.category, (categoriesMap.get(task.category) || 0) + 1);
     }
   });
-
-  const completionRate = stats.total > 0
-    ? Math.round((stats.completed / stats.total) * 100)
-    : 0;
 
   const filteredTasks = userTasks.filter(task => {
     const matchesStatus = statusFilter === 'all' ? true : task.status === statusFilter;
@@ -146,7 +125,7 @@ export const UserDashboard = () => {
   const completionRadialData = [
     {
       name: 'Completion',
-      value: completionRate,
+      value: stats.completionRate,
       fill: '#34d399'
     }
   ];
@@ -271,119 +250,42 @@ export const UserDashboard = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-slate-100 bg-white shadow-lg">
-                    <div className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Completion</p>
-                          <h3 className="mt-3 text-2xl font-semibold text-slate-900">{completionRate}%</h3>
-                          <p className="text-xs text-slate-500">{stats.completed} done · {stats.total - stats.completed} remaining</p>
-                        </div>
-                        <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-                          Updated live
-                        </div>
-                      </div>
-                    </div>
-                    <div className="relative -mt-4 h-64 pb-6">
-                      {stats.total > 0 ? (
-                        <>
-                          <ResponsiveContainer>
-                            <RadialBarChart
-                              innerRadius="60%"
-                              outerRadius="100%"
-                              data={completionRadialData}
-                              startAngle={90}
-                              endAngle={-270}
-                            >
-                              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                              <RadialBar
-                                minAngle={12}
-                                dataKey="value"
-                                cornerRadius={24}
-                                clockWise
-                                fill="#34d399"
-                              />
-                              <Tooltip
-                                formatter={(value) => [`${value}%`, 'Completion']}
-                                contentStyle={{
-                                  borderRadius: 12,
-                                  border: '1px solid #e2e8f0',
-                                  boxShadow: '0 18px 40px rgba(15,23,42,0.12)',
-                                }}
-                              />
-                            </RadialBarChart>
-                          </ResponsiveContainer>
-                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                            <div className="text-center">
-                              <p className="text-4xl font-semibold text-slate-900">{completionRate}%</p>
-                              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Success rate</p>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-slate-400">
-                          Add your first task to see progress
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <CompletionRadial
+                    completionRate={stats.completionRate}
+                    completed={stats.completed}
+                    remaining={stats.total - stats.completed}
+                  />
                 </section>
 
                 <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                  <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-500">
-                          {user?.department_id && departmentTeammates.length > 1 ? 'Department Tasks' : 'Total Tasks'}
-                        </p>
-                        <p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p>
-                        <p className="mt-2 text-xs text-slate-500">
-                          {user?.department_id && departmentTeammates.length > 1 
-                            ? `${departmentTeammates.length} teammates` 
-                            : `${stats.plan} in planning`}
-                        </p>
-                      </div>
-                      <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                        <ListTodo size={22} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-500">In Progress</p>
-                        <p className="mt-2 text-3xl font-bold text-slate-900">{stats.inProgress}</p>
-                        <p className="mt-2 text-xs text-slate-500">{stats.total > 0 ? ((stats.inProgress / stats.total) * 100).toFixed(0) : 0}% of workload</p>
-                      </div>
-                      <div className="rounded-xl bg-sky-100 p-3 text-sky-600">
-                        <TrendingUp size={22} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-500">Completed</p>
-                        <p className="mt-2 text-3xl font-bold text-slate-900">{stats.completed}</p>
-                        <p className="mt-2 text-xs text-slate-500">{completionRate}% success</p>
-                      </div>
-                      <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
-                        <CheckCircle2 size={22} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-500">High Priority</p>
-                        <p className="mt-2 text-3xl font-bold text-slate-900">{stats.high}</p>
-                        <p className="mt-2 text-xs text-slate-500">{stats.total > 0 ? ((stats.high / stats.total) * 100).toFixed(0) : 0}% urgent</p>
-                      </div>
-                      <div className="rounded-xl bg-rose-100 p-3 text-rose-600">
-                        <AlertCircle size={22} />
-                      </div>
-                    </div>
-                  </div>
+                  <StatCard
+                    title={user?.department_id && departmentTeammates.length > 1 ? 'Department Tasks' : 'Total Tasks'}
+                    value={stats.total}
+                    subtitle={user?.department_id && departmentTeammates.length > 1 ? `${departmentTeammates.length} teammates` : `${stats.plan} in planning`}
+                    icon={ListTodo}
+                    color="indigo"
+                  />
+                  <StatCard
+                    title="In Progress"
+                    value={stats.inProgress}
+                    subtitle={`${stats.total > 0 ? ((stats.inProgress / stats.total) * 100).toFixed(0) : 0}% of workload`}
+                    icon={TrendingUp}
+                    color="sky"
+                  />
+                  <StatCard
+                    title="Completed"
+                    value={stats.completed}
+                    subtitle={`${stats.completionRate}% success`}
+                    icon={CheckCircle2}
+                    color="emerald"
+                  />
+                  <StatCard
+                    title="High Priority"
+                    value={stats.high}
+                    subtitle={`${stats.total > 0 ? ((stats.high / stats.total) * 100).toFixed(0) : 0}% urgent`}
+                    icon={AlertCircle}
+                    color="rose"
+                  />
                 </section>
 
                 <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
