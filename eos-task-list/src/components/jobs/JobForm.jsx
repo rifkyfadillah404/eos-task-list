@@ -174,31 +174,54 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
     }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
+  const typeLabel = type === 'category' ? 'Category' : type === 'parent' ? 'Parent' : 'Sub-Parent';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {job ? 'Edit ' : 'Add New '}
-              {type === 'category' ? 'Category' : type === 'parent' ? 'Parent Category' : 'Sub Parent Category'}
-            </h3>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">
+                {job ? `Edit ${typeLabel}` : `Create New ${typeLabel}`}
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {type === 'category' ? 'Top-level work category' : type === 'parent' ? 'Sub-category under main category' : 'Sub-division of parent category'}
+              </p>
+            </div>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-gray-400 hover:text-gray-600 p-2 hover:bg-white rounded-lg transition-colors"
+              title="Close (Esc)"
             >
-              <X size={20} />
+              <X size={22} />
             </button>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 bg-gradient-to-b from-white to-gray-50">
+          <div className="space-y-4">
               {type === 'category' && (
                 <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                    Category Name *
+                  <label htmlFor="category" className="block text-xs font-semibold text-gray-700 mb-2">
+                    Category Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -206,37 +229,46 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      errors.category ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 text-sm shadow-sm transition-all ${
+                      errors.category ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500'
                     }`}
-                    placeholder="Enter category name (e.g. Development)"
+                    placeholder="e.g., Web Development, Marketing, Design"
                     required
+                    maxLength={100}
                   />
-                  {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
+                  {errors.category ? (
+                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">⚠️ {errors.category}</p>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-gray-500">Main category for organizing work</p>
+                  )}
                 </div>
               )}
 
               {/* Department field for all types */}
               <div>
-                <label htmlFor="department_id" className="block text-sm font-medium text-gray-700 mb-1">
-                  Department *
+                <label htmlFor="department_id" className="block text-xs font-semibold text-gray-700 mb-2">
+                  Department <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="department_id"
                   name="department_id"
                   value={formData.department_id}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.department_id ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                  className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 text-sm shadow-sm transition-all ${
+                    errors.department_id ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500'
                   }`}
                   required
                 >
-                  <option value="">Select department</option>
+                  <option value="">Choose a department</option>
                   {departments?.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
+                    <option key={d.id} value={d.id}>📁 {d.name}</option>
                   ))}
                 </select>
-                {errors.department_id && <p className="mt-1 text-sm text-red-600">{errors.department_id}</p>}
+                {errors.department_id ? (
+                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">⚠️ {errors.department_id}</p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-gray-500">Assign this to a specific department</p>
+                )}
               </div>
 
               {type === 'parent' && (
@@ -358,23 +390,22 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
               )}
             </div>
 
-            <div className="mt-6 flex justify-end space-x-3">
+            <div className="mt-6 flex gap-3 pt-5 border-t-2 border-gray-200">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="flex-1 px-5 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                className="flex-1 px-5 py-3 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
               >
-                {job ? 'Update' : 'Add'}
+                {job ? '💾 Update' : '✨ Create'} {typeLabel}
               </button>
             </div>
           </form>
-        </div>
       </div>
     </div>
   );

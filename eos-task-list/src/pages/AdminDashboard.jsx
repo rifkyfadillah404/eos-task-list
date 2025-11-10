@@ -95,8 +95,8 @@ export const AdminDashboard = () => {
     name: u.department_name
   })).map(d => JSON.stringify(d)))].map(d => JSON.parse(d));
 
-  // Get unique categories from jobs
-  const categories = [...new Set(jobs.map(j => j.category))].filter(Boolean).sort();
+  // Get unique categories from jobs (level 0 only - no parent)
+  const categories = [...new Set(jobs.filter(j => !j.parent).map(j => j.category))].filter(Boolean).sort();
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
@@ -119,8 +119,27 @@ export const AdminDashboard = () => {
     const matchesDepartment = departmentFilter === 'all' ? true : 
       users?.find(u => u.id === task.user_id)?.department_id === parseInt(departmentFilter);
     
-    const matchesCategory = categoryFilter === 'all' ? true :
-      jobs.find(j => j.id === task.job_id)?.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' ? true : (() => {
+      // Find the job associated with this task
+      const taskJob = jobs.find(j => j.id === task.job_id);
+      if (!taskJob) return false;
+      
+      // If job has no parent, it's a category - match directly
+      if (!taskJob.parent) {
+        return taskJob.category === categoryFilter;
+      }
+      
+      // If job has parent, trace back to find the root category
+      let currentJob = taskJob;
+      while (currentJob.parent) {
+        const parentJob = jobs.find(j => j.id === parseInt(currentJob.parent));
+        if (!parentJob) break;
+        currentJob = parentJob;
+      }
+      
+      // currentJob is now the root category
+      return currentJob.category === categoryFilter;
+    })();
     
     const matchesSearch = taskSearch.trim().length === 0
       ? true
@@ -491,116 +510,201 @@ export const AdminDashboard = () => {
 
             {/* Tasks List View */}
             {activeMenu === 'tasks' && (
-              <div>
-                <div className="mb-8">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <h2 className="text-3xl font-semibold text-slate-900">All Tasks</h2>
-                      <p className="text-sm text-slate-500">Search, filter, and scan every item assigned across the team.</p>
-                    </div>
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                      <div className="relative w-full md:w-72">
-                        <input
-                          type="text"
-                          placeholder="Search tasks by title or description"
-                          value={taskSearch}
-                          onChange={(e) => setTaskSearch(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                        />
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {['all', 'plan', 'in_progress', 'completed'].map((statusOption) => (
-                          <button
-                            key={statusOption}
-                            onClick={() => setStatusFilter(statusOption)}
-                            className={`rounded-2xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
-                              statusFilter === statusOption
-                                ? 'bg-indigo-600 text-white shadow-md'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {statusOption === 'all' ? 'All Statuses' : statusOption.replace('_', ' ')}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Department Filter */}
-                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-purple-500">Filter by Department</p>
-                        <p className="text-sm text-slate-500">View tasks from specific department.</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => setDepartmentFilter('all')}
-                          className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                            departmentFilter === 'all'
-                              ? 'bg-purple-600 text-white shadow-md'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          All Departments
-                        </button>
-                        {departments.map(dept => (
-                          <button
-                            key={dept.id}
-                            onClick={() => setDepartmentFilter(String(dept.id))}
-                            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                              departmentFilter === String(dept.id)
-                                ? 'bg-purple-600 text-white shadow-md'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            📁 {dept.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Category Filter */}
-                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-500">Filter by Category</p>
-                        <p className="text-sm text-slate-500">View tasks from specific job category.</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => setCategoryFilter('all')}
-                          className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                            categoryFilter === 'all'
-                              ? 'bg-cyan-600 text-white shadow-md'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          All Categories
-                        </button>
-                        {categories.map(category => (
-                          <button
-                            key={category}
-                            onClick={() => setCategoryFilter(category)}
-                            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                              categoryFilter === category
-                                ? 'bg-cyan-600 text-white shadow-md'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            📋 {category}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-
+              <div className="space-y-6">
+                {/* Header */}
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900">Task Management</h2>
+                  <p className="text-sm text-slate-500 mt-1">View and manage all team tasks in one place</p>
                 </div>
 
+                {/* Filters Card */}
+                <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 shadow-md p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                      <Search size={18} className="text-indigo-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900">Search & Filters</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Search Bar */}
+                    <div>
+                      <label className="text-xs font-medium text-slate-700 mb-2 block">Search Tasks</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Type task title or description..."
+                          value={taskSearch}
+                          onChange={(e) => setTaskSearch(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        />
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        {taskSearch && (
+                          <button
+                            onClick={() => setTaskSearch('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Filter */}
+                    <div>
+                      <label className="text-xs font-medium text-slate-700 mb-2 block">Filter by Status</label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setStatusFilter('all')}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                            statusFilter === 'all'
+                              ? 'bg-indigo-600 text-white shadow-md'
+                              : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <ListTodo size={14} />
+                          All Tasks ({allTasks.length})
+                        </button>
+                        <button
+                          onClick={() => setStatusFilter('plan')}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                            statusFilter === 'plan'
+                              ? 'bg-orange-500 text-white shadow-md'
+                              : 'bg-white text-slate-700 border border-slate-300 hover:bg-orange-50'
+                          }`}
+                        >
+                          <AlertCircle size={14} />
+                          Plan ({stats.plan})
+                        </button>
+                        <button
+                          onClick={() => setStatusFilter('in_progress')}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                            statusFilter === 'in_progress'
+                              ? 'bg-blue-500 text-white shadow-md'
+                              : 'bg-white text-slate-700 border border-slate-300 hover:bg-blue-50'
+                          }`}
+                        >
+                          <TrendingUp size={14} />
+                          In Progress ({stats.inProgress})
+                        </button>
+                        <button
+                          onClick={() => setStatusFilter('completed')}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+                            statusFilter === 'completed'
+                              ? 'bg-green-500 text-white shadow-md'
+                              : 'bg-white text-slate-700 border border-slate-300 hover:bg-green-50'
+                          }`}
+                        >
+                          <CheckCircle2 size={14} />
+                          Completed ({stats.completed})
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Department & Category Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+                      {/* Department Filter */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+                          <Users size={14} className="text-purple-600" />
+                          Filter by Department
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setDepartmentFilter('all')}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                              departmentFilter === 'all'
+                                ? 'bg-purple-600 text-white shadow-sm'
+                                : 'bg-white text-slate-600 border border-slate-300 hover:bg-purple-50'
+                            }`}
+                          >
+                            All Departments
+                          </button>
+                          {departments.map(dept => (
+                            <button
+                              key={dept.id}
+                              onClick={() => setDepartmentFilter(String(dept.id))}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                                departmentFilter === String(dept.id)
+                                  ? 'bg-purple-600 text-white shadow-sm'
+                                  : 'bg-white text-slate-600 border border-slate-300 hover:bg-purple-50'
+                              }`}
+                            >
+                              {dept.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Category Filter */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+                          <BarChart3 size={14} className="text-cyan-600" />
+                          Filter by Category
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setCategoryFilter('all')}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                              categoryFilter === 'all'
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-white text-slate-600 border border-slate-300 hover:bg-cyan-50'
+                            }`}
+                          >
+                            All Categories
+                          </button>
+                          {categories.map(category => (
+                            <button
+                              key={category}
+                              onClick={() => setCategoryFilter(category)}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                                categoryFilter === category
+                                  ? 'bg-cyan-600 text-white shadow-sm'
+                                  : 'bg-white text-slate-600 border border-slate-300 hover:bg-cyan-50'
+                              }`}
+                            >
+                              {category}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Filters Summary */}
+                    {(statusFilter !== 'all' || departmentFilter !== 'all' || categoryFilter !== 'all' || taskSearch) && (
+                      <div className="pt-4 border-t border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <span className="font-medium">Active filters:</span>
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md font-medium">
+                              {filteredTasks.length} tasks found
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setStatusFilter('all');
+                              setDepartmentFilter('all');
+                              setCategoryFilter('all');
+                              setTaskSearch('');
+                            }}
+                            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                          >
+                            Clear all filters
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Data Table */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-900">Task List</h3>
+                      <span className="text-xs text-slate-500">{filteredTasks.length} of {allTasks.length} tasks</span>
+                    </div>
+                  </div>
                   <TaskTable 
                     tasks={filteredTasks} 
                     onTaskClick={null}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, Edit2, Trash2, X, Building2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -120,6 +120,20 @@ export const DepartmentManagement = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFormOpen) {
+        handleCloseForm();
+      }
+    };
+
+    if (isFormOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isFormOpen]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -211,93 +225,102 @@ export const DepartmentManagement = () => {
 
       {/* Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-6 py-4">
               <div className="flex items-center gap-3">
-                {editingDept ? (
-                  <>
-                    <Edit2 size={24} className="text-indigo-600" />
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      Edit Department
-                    </h3>
-                  </>
-                ) : (
-                  <>
-                    <Plus size={24} className="text-indigo-600" />
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      Add Department
-                    </h3>
-                  </>
-                )}
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-xl p-2.5 shadow-md">
+                  {editingDept ? <Edit2 size={20} /> : <Plus size={20} />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {editingDept ? 'Edit Department' : 'Create New Department'}
+                  </h3>
+                  <p className="text-xs text-gray-600">
+                    {editingDept ? 'Update department information' : 'Add a new organizational unit'}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={handleCloseForm}
-                className="rounded-lg p-2 text-gray-600 transition-all duration-200 hover:scale-110 hover:bg-white hover:text-gray-900"
+                className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                title="Close (Esc)"
               >
-                <X size={24} />
+                <X size={22} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5 p-6">
+            <form onSubmit={handleSubmit} className="space-y-4 p-6 bg-gradient-to-b from-white to-gray-50">
               {error && (
-                <div className="flex items-center gap-2 rounded-lg border-2 border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-                  <AlertCircle size={18} className="flex-shrink-0" />
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
+                  <AlertCircle size={16} className="flex-shrink-0" />
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="flex items-center gap-2 rounded-lg border-2 border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
-                  <CheckCircle2 size={18} className="flex-shrink-0" />
+                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-3 text-xs font-medium text-green-700">
+                  <CheckCircle2 size={16} className="flex-shrink-0" />
                   {success}
                 </div>
               )}
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-gray-700">
-                  Department Name *
+                <label className="mb-2 block text-xs font-semibold text-gray-700 flex items-center justify-between">
+                  <span>
+                    Department Name <span className="text-red-500">*</span>
+                  </span>
+                  <span className={`text-xs font-medium ${formData.name.length > 40 ? 'text-red-600' : 'text-gray-500'}`}>
+                    {formData.name.length}/50
+                  </span>
                 </label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="e.g., Engineering, Marketing"
-                  className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 transition-all hover:border-indigo-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="e.g., Engineering, Marketing, Finance"
+                  maxLength={50}
+                  className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-sm shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                   required
                 />
+                <p className="mt-1.5 text-xs text-gray-500">Name of the organizational unit</p>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-gray-700">
-                  Department Code (Optional)
+                <label className="mb-2 block text-xs font-semibold text-gray-700 flex items-center justify-between">
+                  <span>Department Code (Optional)</span>
+                  <span className="text-xs font-medium text-gray-500">
+                    {formData.code.length}/10
+                  </span>
                 </label>
                 <input
                   type="text"
                   name="code"
                   value={formData.code}
                   onChange={handleChange}
-                  placeholder="e.g., ENG, MKT"
+                  placeholder="e.g., ENG, MKT, FIN"
                   maxLength={10}
-                  className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 transition-all hover:border-indigo-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-sm shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 />
-                <p className="mt-1 text-xs text-slate-500">Short code for quick reference</p>
+                <p className="mt-1.5 text-xs text-gray-500">Short abbreviation for quick reference</p>
               </div>
 
-              <div className="flex gap-3 border-t border-gray-200 pt-4">
+              <div className="flex gap-3 border-t-2 border-gray-200 pt-5">
                 <button
                   type="button"
                   onClick={handleCloseForm}
-                  className="flex-1 transform rounded-lg bg-gray-100 px-4 py-3 font-bold text-gray-900 transition-all duration-200 hover:scale-105 hover:bg-gray-200 active:scale-95"
+                  className="flex-1 rounded-xl border-2 border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 transform rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3 font-bold text-white shadow-lg transition-all hover:scale-105 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl active:scale-95"
+                  disabled={!formData.name.trim()}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
                 >
-                  {editingDept ? 'Update' : 'Add'} Department
+                  {editingDept ? '💾 Update' : '✨ Create'} Department
                 </button>
               </div>
             </form>

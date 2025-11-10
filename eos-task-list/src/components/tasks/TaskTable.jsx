@@ -1,5 +1,6 @@
-import { Calendar, Users, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Calendar, Users, AlertCircle, CheckCircle2, Clock, MessageCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { CommentModal } from '../comments';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -27,6 +28,9 @@ const formatDate = (dateString) => {
 
 export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
   const [jobs, setJobs] = useState([]);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedTaskForComment, setSelectedTaskForComment] = useState(null);
+  const [taskCommentCounts, setTaskCommentCounts] = useState({});
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -46,25 +50,83 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
     fetchJobs();
   }, []);
 
+  // Initialize comment counts from tasks
+  useEffect(() => {
+    const counts = {};
+    tasks.forEach(task => {
+      counts[task.id] = task.comment_count || 0;
+    });
+    setTaskCommentCounts(counts);
+  }, [tasks]);
+
+  const handleOpenComments = (e, task) => {
+    e.stopPropagation();
+    setSelectedTaskForComment(task);
+    setCommentModalOpen(true);
+  };
+
+  const handleCommentAdded = () => {
+    // Update comment count for the task
+    if (selectedTaskForComment) {
+      setTaskCommentCounts(prev => ({
+        ...prev,
+        [selectedTaskForComment.id]: (prev[selectedTaskForComment.id] || 0) + 1
+      }));
+    }
+  };
+
   const processJobHierarchy = (job) => {
-
-    // Jobs table structure:
-    // - category: job name (e.g., "Web Development", "UI Design")
-    // - parent: parent name (string, optional)
-    // - sub_parent: sub-parent name (optional)
-    // - department_name: from join (e.g., "Engineering", "Design")
+    // Struktur database jobs sebenarnya:
+    // - Level 0 (Category): parent=null, category="Category Name"
+    // - Level 1 (Parent): parent=<category_id>, category="Parent Name"
+    // - Level 2 (Sub-parent): parent=<parent_id>, category="Sub-parent Name"
+    // Field sub_parent di database selalu null, tidak dipakai!
     
-    // Display:
-    // Category = job.category (Web Development, UI Design, dll)
-    // Parent = job.parent (kalau ada)
-    // Sub-parent = job.sub_parent (kalau ada)
-    
+    // Current job name
     const category = job.category || '-';
-    const parent = job.parent || '-';
-    const subParent = job.sub_parent || '-';
-
-    const result = { category, parent, subParent };
-    return result;
+    
+    // Jika job.parent tidak ada, berarti ini adalah root category
+    if (!job.parent) {
+      return { 
+        category: category,  // Category name
+        parent: '-',         // No parent (ini root)
+        subParent: '-'       // No sub-parent
+      };
+    }
+    
+    // Lookup parent job
+    const parentJob = jobs.find(j => j.id === parseInt(job.parent));
+    
+    if (!parentJob) {
+      return { 
+        category: category, 
+        parent: '-', 
+        subParent: '-' 
+      };
+    }
+    
+    // Jika parent job tidak punya parent, berarti:
+    // - parentJob adalah Category (level 0)
+    // - job ini adalah Parent (level 1)
+    if (!parentJob.parent) {
+      return {
+        category: parentJob.category,  // Category name (dari parent)
+        parent: category,               // Parent name (job ini)
+        subParent: '-'                  // Belum ada sub-parent
+      };
+    }
+    
+    // Jika parent job punya parent, berarti:
+    // - grandparent adalah Category (level 0)
+    // - parentJob adalah Parent (level 1)  
+    // - job ini adalah Sub-parent (level 2)
+    const grandparentJob = jobs.find(j => j.id === parseInt(parentJob.parent));
+    
+    return {
+      category: grandparentJob ? grandparentJob.category : '-',  // Category name
+      parent: parentJob.category,                                 // Parent name
+      subParent: category                                         // Sub-parent name (job ini)
+    };
   };
 
   const getJobHierarchy = (jobId) => {
@@ -161,6 +223,9 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
               Completed Date
             </th>
+            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+              Comments
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -242,12 +307,21 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
                       <span className="text-slate-400">-</span>
                     )}
                   </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={(e) => handleOpenComments(e, task)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                    >
+                      <MessageCircle size={14} />
+                      <span>{taskCommentCounts[task.id] || 0}</span>
+                    </button>
+                  </td>
                 </tr>
               );
             })
           ) : (
             <tr>
-              <td colSpan="10" className="px-6 py-12 text-center text-slate-500">
+              <td colSpan="11" className="px-6 py-12 text-center text-slate-500">
                 <div className="flex flex-col items-center">
                   <AlertCircle size={48} className="text-slate-300 mb-4" />
                   <p className="text-lg font-semibold">No tasks found</p>
@@ -258,6 +332,17 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
           )}
         </tbody>
       </table>
+
+      {/* Comment Modal */}
+      <CommentModal
+        isOpen={commentModalOpen}
+        onClose={() => {
+          setCommentModalOpen(false);
+          setSelectedTaskForComment(null);
+        }}
+        task={selectedTaskForComment}
+        onCommentAdded={handleCommentAdded}
+      />
     </div>
   );
 };

@@ -41,11 +41,56 @@ const getJobHierarchy = (jobId, jobs) => {
     return { category: '-', parent: '-', subParent: '-' };
   }
 
+  // Struktur database jobs sebenarnya:
+  // - Level 0 (Category): parent=null, category="Category Name"
+  // - Level 1 (Parent): parent=<category_id>, category="Parent Name"
+  // - Level 2 (Sub-parent): parent=<parent_id>, category="Sub-parent Name"
+  // Field sub_parent di database selalu null, tidak dipakai!
+  
   const category = job.category || '-';
-  const parent = job.parent || '-';
-  const subParent = job.sub_parent || '-';
-
-  return { category, parent, subParent };
+  
+  // Jika job.parent tidak ada, berarti ini adalah root category
+  if (!job.parent) {
+    return { 
+      category: category,  // Category name
+      parent: '-',         // No parent (ini root)
+      subParent: '-'       // No sub-parent
+    };
+  }
+  
+  // Lookup parent job
+  const parentJob = jobs.find(j => j.id === parseInt(job.parent));
+  
+  if (!parentJob) {
+    return { 
+      category: category, 
+      parent: '-', 
+      subParent: '-' 
+    };
+  }
+  
+  // Jika parent job tidak punya parent, berarti:
+  // - parentJob adalah Category (level 0)
+  // - job ini adalah Parent (level 1)
+  if (!parentJob.parent) {
+    return {
+      category: parentJob.category,  // Category name (dari parent)
+      parent: category,               // Parent name (job ini)
+      subParent: '-'                  // Belum ada sub-parent
+    };
+  }
+  
+  // Jika parent job punya parent, berarti:
+  // - grandparent adalah Category (level 0)
+  // - parentJob adalah Parent (level 1)  
+  // - job ini adalah Sub-parent (level 2)
+  const grandparentJob = jobs.find(j => j.id === parseInt(parentJob.parent));
+  
+  return {
+    category: grandparentJob ? grandparentJob.category : '-',  // Category name
+    parent: parentJob.category,                                 // Parent name
+    subParent: category                                         // Sub-parent name (job ini)
+  };
 };
 
 export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = [], onOpenComments, dragListeners }) => {
@@ -147,32 +192,26 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
         </div>
       </div>
 
-      {/* Job Hierarchy - Compact */}
-      <div className="mb-3 relative z-10">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2">
-          <FolderTree size={14} className="text-indigo-600 flex-shrink-0" />
-          <div className="flex items-center gap-1 text-xs font-medium text-gray-700 overflow-hidden">
-            {hierarchy.category !== '-' && <span className="text-indigo-700">{hierarchy.category}</span>}
-            {hierarchy.parent !== '-' && (
-              <>
-                <span className="text-gray-400">›</span>
-                <span className="text-purple-700">{hierarchy.parent}</span>
-              </>
-            )}
-            {hierarchy.subParent !== '-' && (
-              <>
-                <span className="text-gray-400">›</span>
-                <span className="text-pink-700">{hierarchy.subParent}</span>
-              </>
-            )}
-          </div>
+      {/* Job Hierarchy & Priority - Single Line */}
+      <div className="mb-3 relative z-10 flex items-center gap-2">
+        <div className="flex items-center gap-1 text-xs font-medium text-gray-700 overflow-hidden flex-1">
+          <FolderTree size={12} className="text-indigo-600 flex-shrink-0" />
+          {hierarchy.category !== '-' && <span className="text-indigo-700 truncate">{hierarchy.category}</span>}
+          {hierarchy.parent !== '-' && (
+            <>
+              <span className="text-gray-400">›</span>
+              <span className="text-purple-700 truncate">{hierarchy.parent}</span>
+            </>
+          )}
+          {hierarchy.subParent !== '-' && (
+            <>
+              <span className="text-gray-400">›</span>
+              <span className="text-pink-700 truncate">{hierarchy.subParent}</span>
+            </>
+          )}
         </div>
-      </div>
-
-      {/* Priority Badge Only */}
-      <div className="flex items-center gap-2 mb-3 relative z-10">
-        <span className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all duration-200 ${colors.badge} group-hover:scale-105 transform shadow-sm`}>
-          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
+        <span className={`text-xs px-2 py-1 rounded-full font-semibold ${colors.badge} flex-shrink-0`}>
+          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
         </span>
       </div>
 
@@ -218,7 +257,7 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
           )}
         </div>
 
-        {/* Completed Date - Separate Row */}
+        {/* Completed Date */}
         {task.completed_date && task.status === 'completed' && (
           <div className="flex items-center gap-1 text-xs text-green-600 pt-1">
             <Calendar size={12} className="text-green-500" />
@@ -227,22 +266,22 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
           </div>
         )}
 
-        {/* Comment Button */}
+        {/* Comment Button - Compact */}
         {onOpenComments && (
-          <div className="mt-3 pt-3 border-t border-gray-100 relative z-20">
+          <div className="mt-2 pt-2 border-t border-gray-100 relative z-20">
             <button
               type="button"
               onClick={handleCommentClick}
               onMouseDown={(e) => {
                 e.stopPropagation();
               }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all duration-200 font-medium text-sm group/comment pointer-events-auto cursor-pointer relative"
+              className="w-full flex items-center justify-center gap-1 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all text-xs font-medium group/comment pointer-events-auto cursor-pointer relative"
               style={{ pointerEvents: 'auto' }}
             >
-              <MessageCircle size={16} className="group-hover/comment:scale-110 transition-transform" />
-              <span>View Comments</span>
+              <MessageCircle size={14} className="group-hover/comment:scale-110 transition-transform" />
+              <span>Comments</span>
               {localCommentCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                <span className="ml-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {localCommentCount}
                 </span>
               )}

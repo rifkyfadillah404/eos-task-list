@@ -132,83 +132,105 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
     });
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
           <div className="flex items-center gap-3">
-            {task ? (
-              <>
-                <Edit2 size={24} className="text-indigo-600 animate-float float-delay-1" />
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Edit Task</h2>
-              </>
-            ) : (
-              <>
-                <Plus size={24} className="text-indigo-600 animate-float float-delay-1" />
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">New Task</h2>
-              </>
-            )}
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-xl p-2.5 shadow-md">
+              {task ? <Edit2 size={20} /> : <Plus size={20} />}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {task ? 'Edit Task' : 'Create New Task'}
+              </h2>
+              <p className="text-xs text-gray-600">
+                {task ? 'Update task details' : 'Fill in the details below'}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:scale-110 transform"
-            title="Close"
+            className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600 hover:text-gray-900"
+            title="Close (Esc)"
           >
-            <X size={24} />
+            <X size={22} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto bg-gradient-to-b from-white to-gray-50">
           {/* Title */}
-          <div className="animate-slide-in-left stagger-1">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Task Title <span className="text-red-500">*</span>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>
+                Task Title <span className="text-red-500">*</span>
+              </span>
+              <span className={`text-xs font-medium ${formData.title.length > 80 ? 'text-red-600' : 'text-gray-500'}`}>
+                {formData.title.length}/100
+              </span>
             </label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="What do you need to do?"
+              placeholder="e.g., Design landing page mockup"
               maxLength="100"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-sm shadow-sm"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">Be specific and clear about what needs to be done</p>
           </div>
 
           {/* Description */}
-          <div className="animate-slide-in-left stagger-2">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Description
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>Description (Optional)</span>
+              <span className={`text-xs font-medium ${formData.description.length > 450 ? 'text-red-600' : 'text-gray-500'}`}>
+                {formData.description.length}/500
+              </span>
             </label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Add more details about this task..."
+              placeholder="Add more details, requirements, or context..."
               rows="3"
               maxLength="500"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all resize-none hover:border-indigo-300"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all resize-none text-sm shadow-sm"
             />
           </div>
 
           {/* Job Selection */}
-          <div className="animate-slide-in-left stagger-3.5">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Job / Work Category
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
+              Job / Work Category (Optional)
             </label>
             {!isAdmin && user?.department_id ? (
-              <p className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg mb-2 border border-blue-200">
-                📌 Showing jobs from your department only
-              </p>
+              <div className="text-xs text-blue-700 bg-blue-50 px-3 py-2 rounded-lg mb-2 border border-blue-200 flex items-center gap-2">
+                <span>💼</span>
+                <span>Showing jobs from your department only</span>
+              </div>
             ) : (
-              <p className="text-xs text-gray-500 mb-2">
-                Select the job category this task belongs to (optional)
-              </p>
+              <p className="text-xs text-gray-600 mb-2">Link this task to a specific job category for better organization</p>
             )}
             {loadingJobs ? (
               <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 animate-pulse">
@@ -220,9 +242,9 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
                   name="job_id"
                   value={formData.job_id || ''}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300 bg-white"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-white text-sm shadow-sm"
                 >
-                  <option value="">-- Select Job (Optional) --</option>
+                  <option value="">No specific job (General task)</option>
                   {jobs.length === 0 ? (
                     <option disabled>
                       {!isAdmin && user?.department_id 
@@ -370,25 +392,14 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
             if (!selectedJob) return null;
             
             return (
-              <div className="animate-slide-in-left stagger-4 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border-2 border-indigo-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-indigo-600 text-white rounded-lg p-2">
-                    <ListTodo size={16} />
-                  </div>
-                  <h3 className="font-bold text-indigo-900">Selected Job Category</h3>
-                </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">📋</span>
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">{selectedJob.category}</p>
-                      {selectedJob.department_name && (
-                        <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                          <span>📁</span>
-                          <span>{selectedJob.department_name}</span>
-                        </p>
-                      )}
-                    </div>
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 rounded-xl border border-indigo-200">
+                <div className="flex items-center gap-2">
+                  <ListTodo size={16} className="text-indigo-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-indigo-900 truncate">{selectedJob.category}</p>
+                    {selectedJob.department_name && (
+                      <p className="text-xs text-indigo-700">📁 {selectedJob.department_name}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -400,72 +411,74 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
 
 
           {/* Priority & Status Grid */}
-          <div className="grid grid-cols-2 gap-4 animate-slide-in-left stagger-4">
+          <div className="grid grid-cols-2 gap-4">
             {/* Priority */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                <Circle size={16} className="text-red-500" />
-                Priority
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <Circle size={14} className="text-red-500" />
+                Priority Level
               </label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium hover:border-indigo-300"
+                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-sm shadow-sm"
               >
-                <option value="low">Low Priority</option>
-                <option value="medium">Medium Priority</option>
-                <option value="high">High Priority</option>
+                <option value="low">🟢 Low</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="high">🔴 High</option>
               </select>
             </div>
 
             {/* Status */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                <Zap size={16} className="text-blue-500" />
-                Status
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                <Zap size={14} className="text-blue-500" />
+                Task Status
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium hover:border-indigo-300"
+                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-sm shadow-sm"
               >
-                <option value="plan">Plan</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
+                <option value="plan">📝 Plan</option>
+                <option value="in_progress">🔄 In Progress</option>
+                <option value="completed">✅ Completed</option>
               </select>
             </div>
           </div>
 
           {/* Due Date */}
-          <div className="animate-slide-in-left stagger-5">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Due Date & Time
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
+              Due Date & Time (Optional)
             </label>
             <input
               type="datetime-local"
               name="due_date"
               value={formData.due_date}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-sm shadow-sm"
             />
+            <p className="text-xs text-gray-500 mt-1">Set a deadline to track task completion</p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200 animate-slide-in-left stagger-5">
+          <div className="flex gap-3 pt-5 border-t-2 border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
+              className="flex-1 px-5 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-all border-2 border-gray-300 text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
+              disabled={!formData.title.trim()}
+              className="flex-1 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed text-sm"
             >
-              {task ? 'Update' : 'Create'} Task
+              {task ? '💾 Update Task' : '✨ Create Task'}
             </button>
           </div>
         </form>
