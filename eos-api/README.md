@@ -35,6 +35,266 @@ Sebelum setup, pastikan sudah install:
 
 ---
 
+## 🗄️ SQL Server Setup Guide (Untuk Pemula)
+
+### Step 1: Download SQL Server Express
+
+1. **Download installer**:
+   - Buka [SQL Server Express Downloads](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
+   - Klik **Download now** di bagian **Express**
+   - File yang di-download: `SQLServerExpress-xxxxx.exe` (~10 MB)
+
+2. **Pilih tipe instalasi**:
+   - Edition: **SQL Server Express**
+   - Versi: **2019/2022** (recommended: 2022)
+   - License: **GRATIS** untuk production
+
+---
+
+### Step 2: Install SQL Server Express
+
+1. **Run installer** `SQLServerExpress-xxxxx.exe`
+
+2. **Pilih installation type**:
+   - Klik **Custom** atau **Basic**
+   - Recommended: **Custom** untuk kontrol lebih
+
+3. **Setup wizard**:
+   ```
+   ✅ Accept License Terms
+   ✅ Select Features:
+      [x] Database Engine Services  (REQUIRED)
+      [x] SQL Server Replication
+      [x] Client Tools Connectivity
+   ```
+
+4. **Instance Configuration**:
+   ```
+   Instance Name: SQLEXPRESS (default)
+   Instance ID: SQLEXPRESS
+   Instance root directory: C:\Program Files\Microsoft SQL Server\
+   ```
+
+5. **Server Configuration**:
+   ```
+   SQL Server Database Engine:
+   - Service Account: NT AUTHORITY\SYSTEM (recommended)
+   - Startup Type: Automatic
+   ```
+
+6. **Database Engine Configuration**:
+   
+   **PENTING - Pilih Authentication Mode:**
+   ```
+   [x] Mixed Mode (SQL Server authentication and Windows authentication)
+   ```
+   
+   **Set SA Password:**
+   ```
+   Password: [YourStrongPassword123]
+   Confirm Password: [YourStrongPassword123]
+   ```
+   
+   📝 **Catat password ini!** Akan dipakai di `.env` nanti.
+   
+   **Add Current User:**
+   ```
+   [x] Add Current User (untuk Windows Authentication)
+   ```
+
+7. **Complete Installation**:
+   - Klik **Install**
+   - Tunggu ~5-10 menit
+   - ✅ Installation successful!
+
+---
+
+### Step 3: Install SQL Server Management Studio (SSMS)
+
+**SSMS** = GUI tool untuk manage SQL Server database.
+
+1. **Download SSMS**:
+   - Link: [Download SSMS](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms)
+   - File: `SSMS-Setup-ENU.exe` (~600 MB)
+
+2. **Install SSMS**:
+   ```
+   ✅ Run installer
+   ✅ Accept License
+   ✅ Click Install
+   ✅ Wait 10-15 minutes
+   ✅ Restart computer (optional but recommended)
+   ```
+
+---
+
+### Step 4: Verify SQL Server Installation
+
+1. **Check SQL Server Service**:
+   
+   **Via Services (Windows)**:
+   ```
+   Win + R → services.msc → Enter
+   
+   Cari:
+   ✅ SQL Server (SQLEXPRESS) - Status: Running
+   ✅ SQL Server Browser - Status: Running (optional)
+   ```
+
+2. **Test Connection dengan SSMS**:
+   
+   **Buka SSMS**:
+   ```
+   Start Menu → SQL Server Management Studio
+   ```
+   
+   **Connect to Server**:
+   ```
+   Server type: Database Engine
+   Server name: localhost\SQLEXPRESS
+   Authentication: SQL Server Authentication
+   Login: sa
+   Password: [password yang kamu set tadi]
+   ```
+   
+   Klik **Connect** → Jika berhasil, kamu akan lihat database tree di sebelah kiri.
+
+---
+
+### Step 5: Enable TCP/IP Protocol (REQUIRED!)
+
+SQL Server Express secara default **disable TCP/IP**. Kita perlu enable untuk koneksi dari aplikasi.
+
+1. **Buka SQL Server Configuration Manager**:
+   ```
+   Start Menu → SQL Server 2022 Configuration Manager
+   ```
+
+2. **Enable TCP/IP**:
+   ```
+   SQL Server Network Configuration
+   → Protocols for SQLEXPRESS
+   → Right-click "TCP/IP"
+   → Enable
+   ```
+
+3. **Configure TCP/IP Port**:
+   ```
+   Right-click "TCP/IP" → Properties
+   → Tab "IP Addresses"
+   → Scroll ke "IPAll"
+   
+   Set:
+   TCP Dynamic Ports: [kosongkan]
+   TCP Port: 1433
+   ```
+
+4. **Restart SQL Server Service**:
+   ```
+   SQL Server Services
+   → Right-click "SQL Server (SQLEXPRESS)"
+   → Restart
+   ```
+
+---
+
+### Step 6: Configure Windows Firewall
+
+Jika aplikasi tidak bisa connect, firewall mungkin block port 1433.
+
+1. **Buka Windows Firewall**:
+   ```
+   Control Panel → System and Security → Windows Defender Firewall
+   → Advanced settings
+   ```
+
+2. **Create Inbound Rule**:
+   ```
+   Inbound Rules → New Rule
+   → Port → Next
+   → TCP → Specific local ports: 1433 → Next
+   → Allow the connection → Next
+   → Check all (Domain, Private, Public) → Next
+   → Name: SQL Server Port 1433 → Finish
+   ```
+
+---
+
+### Step 7: Test Connection dari Command Line
+
+Verifikasi SQL Server sudah bisa diakses:
+
+```bash
+# Test dengan sqlcmd (installed with SQL Server)
+sqlcmd -S localhost\SQLEXPRESS -U sa -P YourPassword123
+
+# Jika berhasil connect, akan muncul prompt:
+# 1>
+```
+
+Ketik:
+```sql
+SELECT @@VERSION;
+GO
+```
+
+Tekan Enter. Jika muncul info SQL Server version, **setup berhasil!** ✅
+
+---
+
+### Step 8: Setup Database untuk EOS Task Management
+
+Setelah SQL Server running, lanjut ke section **Installation & Setup** di bawah untuk:
+1. Install Node.js dependencies
+2. Configure `.env`
+3. Run database initialization script
+
+---
+
+## 🎯 Quick Checklist
+
+Pastikan semua sudah completed sebelum lanjut ke Installation & Setup:
+
+- [ ] SQL Server Express installed
+- [ ] SSMS installed
+- [ ] TCP/IP protocol enabled
+- [ ] Port 1433 configured
+- [ ] Firewall rule created
+- [ ] Connection tested with SSMS
+- [ ] SA password noted down
+
+---
+
+## ⚠️ Common Issues & Solutions
+
+### Issue 1: "Cannot connect to localhost\SQLEXPRESS"
+**Solution:**
+- Check SQL Server service is running (`services.msc`)
+- Verify instance name is `SQLEXPRESS` (case-insensitive)
+- Enable TCP/IP protocol in Configuration Manager
+
+### Issue 2: "Login failed for user 'sa'"
+**Solution:**
+- Pastikan Mixed Mode Authentication enabled saat install
+- Reset SA password via SSMS:
+  ```sql
+  ALTER LOGIN sa WITH PASSWORD = 'NewPassword123';
+  ALTER LOGIN sa ENABLE;
+  ```
+
+### Issue 3: Port 1433 blocked
+**Solution:**
+- Configure Windows Firewall (see Step 6)
+- Check antivirus/security software
+
+### Issue 4: SQL Server won't start
+**Solution:**
+- Check Event Viewer for errors: `eventvwr.msc`
+- Verify SQL Server service account has proper permissions
+- Reinstall SQL Server if corrupted
+
+---
+
 ## 🎨 Frontend Improvements (Latest)
 
 ### Smooth Drag & Drop Animations

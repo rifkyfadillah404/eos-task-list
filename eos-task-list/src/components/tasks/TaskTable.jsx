@@ -1,6 +1,8 @@
-import { Calendar, Users, AlertCircle, CheckCircle2, Clock, MessageCircle } from 'lucide-react';
+import { Calendar, Users, AlertCircle, CheckCircle2, Clock, MessageCircle, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CommentModal } from '../comments';
+import { useAuth } from '../../context/AuthContext';
+import { useTask } from '../../context/TaskContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -31,6 +33,9 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [selectedTaskForComment, setSelectedTaskForComment] = useState(null);
   const [taskCommentCounts, setTaskCommentCounts] = useState({});
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const { user } = useAuth();
+  const { deleteTask } = useTask();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -72,6 +77,23 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
         ...prev,
         [selectedTaskForComment.id]: (prev[selectedTaskForComment.id] || 0) + 1
       }));
+    }
+  };
+
+  const handleDeleteTask = async (e, task) => {
+    e.stopPropagation();
+    
+    if (deletingTaskId === task.id) return;
+    
+    if (!confirm(`Yakin mau hapus task "${task.title}"?`)) return;
+    
+    setDeletingTaskId(task.id);
+    try {
+      await deleteTask(task.id);
+    } catch (error) {
+      alert('Gagal hapus task: ' + error.message);
+    } finally {
+      setDeletingTaskId(null);
     }
   };
 
@@ -226,6 +248,9 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
             <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
               Comments
             </th>
+            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -316,12 +341,24 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
                       <span>{taskCommentCounts[task.id] || 0}</span>
                     </button>
                   </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-center">
+                    {user && task.plan_by === user.id && (
+                      <button
+                        onClick={(e) => handleDeleteTask(e, task)}
+                        disabled={deletingTaskId === task.id}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={14} />
+                        <span>{deletingTaskId === task.id ? 'Deleting...' : 'Delete'}</span>
+                      </button>
+                    )}
+                  </td>
                 </tr>
               );
             })
           ) : (
             <tr>
-              <td colSpan="11" className="px-6 py-12 text-center text-slate-500">
+              <td colSpan="12" className="px-6 py-12 text-center text-slate-500">
                 <div className="flex flex-col items-center">
                   <AlertCircle size={48} className="text-slate-300 mb-4" />
                   <p className="text-lg font-semibold">No tasks found</p>

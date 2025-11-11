@@ -236,7 +236,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
     if (due_date !== undefined) {
       updateFields.push('due_date = @due_date');
-      request.input('due_date', due_date);
+      let parsedDueDate = null;
+      if (due_date) {
+        try {
+          parsedDueDate = new Date(due_date.replace(' ', 'T')).toISOString();
+        } catch (err) {
+          parsedDueDate = null;
+        }
+      }
+      request.input('due_date', parsedDueDate);
     }
     if (status !== undefined) {
       updateFields.push('status = @status');
@@ -288,17 +296,18 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const pool = getPool();
 
-    // Check task ownership
+    // Check task creator
     const task = await pool.request()
       .input('id', parseInt(id))
-      .query('SELECT user_id FROM tasks WHERE id = @id');
+      .query('SELECT plan_by FROM tasks WHERE id = @id');
 
     if (task.recordset.length === 0) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (req.user.role !== 'admin' && task.recordset[0].user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
+    // Only the creator (plan_by) can delete the task
+    if (task.recordset[0].plan_by !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized - only task creator can delete' });
     }
 
     // Delete task
