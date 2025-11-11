@@ -60,11 +60,13 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
       let formattedDueDate = '';
       if (task.due_date) {
         const date = new Date(task.due_date);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+        // Convert to WIB (UTC+7) for display in form
+        const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+        const year = wibDate.getFullYear();
+        const month = String(wibDate.getMonth() + 1).padStart(2, '0');
+        const day = String(wibDate.getDate()).padStart(2, '0');
+        const hours = String(wibDate.getHours()).padStart(2, '0');
+        const minutes = String(wibDate.getMinutes()).padStart(2, '0');
         formattedDueDate = `${year}-${month}-${day}T${hours}:${minutes}`;
       }
       
@@ -120,7 +122,33 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
       return;
     }
     
-    onSubmit?.(formData);
+    // Convert due_date from WIB to UTC for backend
+    let submittedData = { ...formData };
+    if (formData.due_date) {
+      try {
+        // datetime-local format: YYYY-MM-DDTHH:mm
+        // We treat this as WIB time (UTC+7) and convert to UTC
+        const [datePart, timePart] = formData.due_date.split('T');
+        const [year, month, day] = datePart.split('-');
+        const [hours, minutes] = timePart.split(':');
+        
+        // Create UTC date by treating input as WIB (subtract 7 hours)
+        const utcDate = new Date(Date.UTC(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hours) - 7,  // WIB is UTC+7, so subtract 7
+          parseInt(minutes),
+          0
+        ));
+        
+        submittedData.due_date = utcDate.toISOString();
+      } catch (err) {
+        // Keep original value if parsing fails
+      }
+    }
+    
+    onSubmit?.(submittedData);
     
     setFormData({
       title: '',

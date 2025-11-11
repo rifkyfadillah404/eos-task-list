@@ -253,7 +253,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       // If status changed to completed, set completed_by and completed_date
       if (status === 'completed' && task.current_status !== 'completed') {
         updateFields.push('completed_by = @completed_by');
-        updateFields.push('completed_date = GETDATE()');
+        updateFields.push('completed_date = GETUTCDATE()');
         request.input('completed_by', req.user.id);
       }
       // If status changed from completed to other status, reset completed_by and completed_date
@@ -271,7 +271,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    updateFields.push('updated_at = GETDATE()');
+    updateFields.push('updated_at = GETUTCDATE()');
 
     const query = `
       UPDATE tasks

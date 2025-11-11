@@ -208,7 +208,7 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    updateFields.push('updated_at = GETDATE()');
+    updateFields.push('updated_at = GETUTCDATE()');
 
     const query = `
       UPDATE jobs

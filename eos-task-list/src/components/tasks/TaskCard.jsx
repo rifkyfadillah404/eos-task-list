@@ -13,11 +13,14 @@ const formatDate = (dateString) => {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
 
-    const year = date.getFullYear();
-    const month = monthNames[date.getMonth()];
-    const day = date.getDate();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // Convert to WIB (UTC+7)
+    const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    
+    const year = wibDate.getFullYear();
+    const month = monthNames[wibDate.getMonth()];
+    const day = wibDate.getDate();
+    const hours = String(wibDate.getHours()).padStart(2, '0');
+    const minutes = String(wibDate.getMinutes()).padStart(2, '0');
 
     return `${day} ${month} ${year} ${hours}:${minutes}`;
   } catch {

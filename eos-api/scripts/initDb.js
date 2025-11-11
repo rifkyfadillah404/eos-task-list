@@ -93,8 +93,8 @@ async function initializeDatabase() {
         id INT PRIMARY KEY IDENTITY(1,1),
         name NVARCHAR(150) NOT NULL,
         code NVARCHAR(50) NULL,
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE()
+        created_at DATETIME DEFAULT GETUTCDATE(),
+        updated_at DATETIME DEFAULT GETUTCDATE()
       )
     `);
 
@@ -109,8 +109,8 @@ async function initializeDatabase() {
         password NVARCHAR(MAX) NOT NULL,
         role NVARCHAR(50) NOT NULL DEFAULT 'user',
         department_id INT NULL,
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE()
+        created_at DATETIME DEFAULT GETUTCDATE(),
+        updated_at DATETIME DEFAULT GETUTCDATE()
         ,FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
       )
     `);
@@ -126,8 +126,8 @@ async function initializeDatabase() {
         parent NVARCHAR(100) NULL,
         sub_parent NVARCHAR(100),
         department_id INT NOT NULL,
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETUTCDATE(),
+        updated_at DATETIME DEFAULT GETUTCDATE(),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
       )
@@ -150,8 +150,8 @@ async function initializeDatabase() {
         plan_by INT NULL,
         completed_by INT NULL,
         completed_date DATETIME NULL,
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETUTCDATE(),
+        updated_at DATETIME DEFAULT GETUTCDATE(),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (plan_by) REFERENCES users(id) ON DELETE NO ACTION,
         FOREIGN KEY (completed_by) REFERENCES users(id) ON DELETE NO ACTION
@@ -167,7 +167,7 @@ async function initializeDatabase() {
         task_id INT NOT NULL,
         user_id INT NOT NULL,
         comment_text NVARCHAR(MAX) NOT NULL,
-        created_at DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETUTCDATE(),
         FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION
       )

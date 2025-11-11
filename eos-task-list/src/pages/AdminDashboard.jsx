@@ -41,9 +41,12 @@ const formatDate = (dateString) => {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    const year = date.getFullYear();
-    const month = monthNames[date.getMonth()];
-    const day = date.getDate();
+    // Convert to WIB (UTC+7)
+    const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    
+    const year = wibDate.getFullYear();
+    const month = monthNames[wibDate.getMonth()];
+    const day = wibDate.getDate();
 
     return `${year} ${month} ${day}`;
   } catch {

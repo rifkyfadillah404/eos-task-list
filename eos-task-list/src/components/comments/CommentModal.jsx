@@ -126,8 +126,12 @@ export const CommentModal = ({ isOpen, onClose, task, onCommentAdded }) => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
+    
+    // Convert both dates to WIB (UTC+7) for accurate comparison
+    const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    const wibNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    
+    const diffMs = wibNow - wibDate;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
@@ -137,7 +141,7 @@ export const CommentModal = ({ isOpen, onClose, task, onCommentAdded }) => {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
 
-    return date.toLocaleDateString('en-GB', {
+    return wibDate.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

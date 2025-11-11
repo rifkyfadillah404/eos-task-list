@@ -58,7 +58,7 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
-    updateFields.push('updated_at = GETDATE()');
+    updateFields.push('updated_at = GETUTCDATE()');
 
     const result = await request.query(`
       UPDATE departments SET ${updateFields.join(', ')} WHERE id = @id;
