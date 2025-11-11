@@ -498,10 +498,111 @@ export const AdminDashboard = () => {
                 <div className="mb-8">
                   <h2 className="text-3xl font-bold text-gray-900 mb-4">Monitor All Tasks</h2>
                   <p className="text-gray-600 mb-6">View and manage team tasks</p>
+                  
+                  {/* Filters for Board View */}
+                  <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 shadow-md p-6 mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-2 bg-indigo-100 rounded-lg">
+                        <Search size={18} className="text-indigo-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900">Board Filters</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Department Filter */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+                          <Users size={14} className="text-purple-600" />
+                          Filter by Department
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setDepartmentFilter('all')}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                              departmentFilter === 'all'
+                                ? 'bg-purple-600 text-white shadow-sm'
+                                : 'bg-white text-slate-600 border border-slate-300 hover:bg-purple-50'
+                            }`}
+                          >
+                            All Departments
+                          </button>
+                          {departments.map(dept => (
+                            <button
+                              key={dept.id}
+                              onClick={() => setDepartmentFilter(String(dept.id))}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                                departmentFilter === String(dept.id)
+                                  ? 'bg-purple-600 text-white shadow-sm'
+                                  : 'bg-white text-slate-600 border border-slate-300 hover:bg-purple-50'
+                              }`}
+                            >
+                              {dept.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Category Filter */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+                          <BarChart3 size={14} className="text-cyan-600" />
+                          Filter by Category
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setCategoryFilter('all')}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                              categoryFilter === 'all'
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-white text-slate-600 border border-slate-300 hover:bg-cyan-50'
+                            }`}
+                          >
+                            All Categories
+                          </button>
+                          {categories.map(category => (
+                            <button
+                              key={category}
+                              onClick={() => setCategoryFilter(category)}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                                categoryFilter === category
+                                  ? 'bg-cyan-600 text-white shadow-sm'
+                                  : 'bg-white text-slate-600 border border-slate-300 hover:bg-cyan-50'
+                              }`}
+                            >
+                              {category}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Filters Summary */}
+                    {(departmentFilter !== 'all' || categoryFilter !== 'all') && (
+                      <div className="pt-4 border-t border-slate-200 mt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <span className="font-medium">Active filters:</span>
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md font-medium">
+                              {filteredTasks.length} tasks shown
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setDepartmentFilter('all');
+                              setCategoryFilter('all');
+                            }}
+                            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                          >
+                            Clear filters
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <BoardView
-                  tasks={displayTasks}
+                  tasks={filteredTasks}
                   onTaskClick={null}
                   onAddTask={null}
                   onTaskMove={handleTaskMove}
@@ -712,6 +813,7 @@ export const AdminDashboard = () => {
                     tasks={filteredTasks} 
                     onTaskClick={null}
                     users={users}
+                    onRefreshTasks={fetchTasks}
                   />
                 </div>
               </div>

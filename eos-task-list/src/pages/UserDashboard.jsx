@@ -54,11 +54,31 @@ export const UserDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [jobs, setJobs] = useState([]);
 
   // Fetch tasks on component mount
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
+
+  // Fetch jobs for category filter
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/jobs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setJobs(data.jobs || []);
+        }
+      } catch (err) {
+      }
+    };
+    fetchJobs();
+  }, []);
 
   const userTasks = getUserTasks(user.id);
   
@@ -66,6 +86,9 @@ export const UserDashboard = () => {
   const departmentTeammates = users.filter(u => 
     u.department_id && u.department_id === user.department_id
   );
+
+  // Get unique categories from jobs (level 0 only - no parent)
+  const categories = [...new Set(jobs.filter(j => !j.parent).map(j => j.category))].filter(Boolean).sort();
 
   const handleAddTask = (status) => {
     setNewTaskStatus(status || 'plan');
@@ -105,12 +128,35 @@ export const UserDashboard = () => {
 
   const filteredTasks = userTasks.filter(task => {
     const matchesStatus = statusFilter === 'all' ? true : task.status === statusFilter;
+    
+    const matchesCategory = categoryFilter === 'all' ? true : (() => {
+      // Find the job associated with this task
+      const taskJob = jobs.find(j => j.id === task.job_id);
+      if (!taskJob) return false;
+      
+      // If job has no parent, it's a category - match directly
+      if (!taskJob.parent) {
+        return taskJob.category === categoryFilter;
+      }
+      
+      // If job has parent, trace back to find the root category
+      let currentJob = taskJob;
+      while (currentJob.parent) {
+        const parentJob = jobs.find(j => j.id === parseInt(currentJob.parent));
+        if (!parentJob) break;
+        currentJob = parentJob;
+      }
+      
+      // currentJob is now the root category
+      return currentJob.category === categoryFilter;
+    })();
+    
     const matchesSearch = taskSearch.trim().length === 0
       ? true
       : [task.title, task.description]
           .filter(Boolean)
           .some(field => field.toLowerCase().includes(taskSearch.toLowerCase()));
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesCategory && matchesSearch;
   });
 
   const statusChartData = [
@@ -505,21 +551,86 @@ export const UserDashboard = () => {
             {/* Board View */}
             {activeMenu === 'boards' && (
               <div>
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-900">Your Tasks</h2>
-                    <p className="text-gray-600 mt-1">Drag and drop to manage your workflow</p>
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-3xl font-bold text-gray-900">Your Tasks</h2>
+                      <p className="text-gray-600 mt-1">Drag and drop to manage your workflow</p>
+                    </div>
+                    <button
+                      onClick={() => handleAddTask('plan')}
+                      className="btn-primary flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow"
+                    >
+                      <Plus size={18} />
+                      New Task
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleAddTask('plan')}
-                    className="btn-primary flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow"
-                  >
-                    <Plus size={18} />
-                    New Task
-                  </button>
+
+                  {/* Category Filter for Board View */}
+                  <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 shadow-md p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-2 bg-indigo-100 rounded-lg">
+                        <BarChart3 size={18} className="text-indigo-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-900">Board Filters</h3>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+                        <BarChart3 size={14} className="text-cyan-600" />
+                        Filter by Category
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setCategoryFilter('all')}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                            categoryFilter === 'all'
+                              ? 'bg-cyan-600 text-white shadow-sm'
+                              : 'bg-white text-slate-600 border border-slate-300 hover:bg-cyan-50'
+                          }`}
+                        >
+                          All Categories
+                        </button>
+                        {categories.map(category => (
+                          <button
+                            key={category}
+                            onClick={() => setCategoryFilter(category)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                              categoryFilter === category
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-white text-slate-600 border border-slate-300 hover:bg-cyan-50'
+                            }`}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Active Filter Summary */}
+                    {categoryFilter !== 'all' && (
+                      <div className="pt-4 border-t border-slate-200 mt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <span className="font-medium">Active filter:</span>
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-md font-medium">
+                              {filteredTasks.length} tasks shown
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => setCategoryFilter('all')}
+                            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                          >
+                            Clear filter
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 <BoardView
-                  tasks={userTasks}
+                  tasks={filteredTasks}
                   onTaskClick={handleTaskClick}
                   onAddTask={handleAddTask}
                   onRefreshTasks={fetchTasks}
@@ -576,6 +687,7 @@ export const UserDashboard = () => {
                   <TaskTable 
                     tasks={filteredTasks} 
                     onTaskClick={handleTaskClick}
+                    onRefreshTasks={fetchTasks}
                   />
                 </div>
               </div>

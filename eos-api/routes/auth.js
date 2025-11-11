@@ -26,6 +26,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid user ID or password' });
     }
 
+    // Check if user is active
+    if (user.is_active === false || user.is_active === 0) {
+      return res.status(403).json({ error: 'Your account has been deactivated. Please contact administrator.' });
+    }
+
     // For demo: simple password comparison
     // In production, use bcrypt to compare hashed passwords
     const validPassword = password === 'user123' || password === 'admin123' ||

@@ -109,6 +109,7 @@ async function initializeDatabase() {
         password NVARCHAR(MAX) NOT NULL,
         role NVARCHAR(50) NOT NULL DEFAULT 'user',
         department_id INT NULL,
+        is_active BIT NOT NULL DEFAULT 1,
         created_at DATETIME DEFAULT GETUTCDATE(),
         updated_at DATETIME DEFAULT GETUTCDATE()
         ,FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL

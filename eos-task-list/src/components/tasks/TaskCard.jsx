@@ -100,7 +100,7 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
   const [localCommentCount, setLocalCommentCount] = useState(task.comment_count || 0);
   const taskIdRef = useRef(task.id);
 
-  // Only update count when viewing a DIFFERENT task or when server data is higher
+  // Always sync with task.comment_count from server
   useEffect(() => {
     const serverCount = task.comment_count || 0;
     
@@ -109,11 +109,11 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
       taskIdRef.current = task.id;
       setLocalCommentCount(serverCount);
     } 
-    // If same task, only update if server has MORE comments (fresh data from fetch)
-    else if (serverCount > localCommentCount) {
+    // Always update from server data to stay in sync
+    else {
       setLocalCommentCount(serverCount);
     }
-  }, [task.id, task.comment_count, localCommentCount]);
+  }, [task.id, task.comment_count]);
   const statusIcons = {
     completed: <CheckCircle2 size={18} className="text-green-600" />,
     in_progress: <Clock size={18} className="text-blue-600 animate-pulse" />,
@@ -142,11 +142,7 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
     e.stopPropagation();
     e.preventDefault();
     if (!isDragging && onOpenComments) {
-      // Pass callback to update local count
-      onOpenComments(task, (newCount) => {
-        setLocalCommentCount(newCount);
-      });
-    } else {
+      onOpenComments(task);
     }
   };
 
@@ -278,16 +274,11 @@ export const TaskCard = ({ task, onTaskClick, isDragging, statusVariant, jobs = 
               onMouseDown={(e) => {
                 e.stopPropagation();
               }}
-              className="w-full flex items-center justify-center gap-1 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all text-xs font-medium group/comment pointer-events-auto cursor-pointer relative"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all hover:shadow-md text-xs font-semibold group/comment pointer-events-auto cursor-pointer"
               style={{ pointerEvents: 'auto' }}
             >
-              <MessageCircle size={14} className="group-hover/comment:scale-110 transition-transform" />
-              <span>Comments</span>
-              {localCommentCount > 0 && (
-                <span className="ml-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {localCommentCount}
-                </span>
-              )}
+              <MessageCircle size={16} className="group-hover/comment:scale-110 transition-transform" />
+              <span className="font-bold">Comments ({localCommentCount})</span>
             </button>
           </div>
         )}

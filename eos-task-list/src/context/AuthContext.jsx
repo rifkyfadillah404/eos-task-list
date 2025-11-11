@@ -197,6 +197,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const toggleUserActive = async (userId) => {
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}/toggle-active`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle user status');
+      }
+
+      // Refresh users list
+      await fetchAllUsers(token);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  };
+
   const deleteUser = async (userId) => {
     try {
       const response = await fetch(`${API_URL}/users/${userId}`, {
@@ -230,6 +251,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     addUser,
     updateUser,
+    toggleUserActive,
     deleteUser,
     fetchDepartments,
     isAuthenticated: !!user,
@@ -242,5 +264,6 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 
 

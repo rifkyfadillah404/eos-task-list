@@ -1,4 +1,4 @@
-import { Calendar, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle2, Clock, Edit2, Trash2 } from 'lucide-react';
 
 export const JobTable = ({ jobs, onJobClick, onDeleteJob }) => {
   const formatDate = (dateString) => {
@@ -156,8 +156,7 @@ export const JobTable = ({ jobs, onJobClick, onDeleteJob }) => {
               return (
                 <tr 
                   key={job.id} 
-                  className="hover:bg-slate-50 cursor-pointer transition-colors"
-                  onClick={() => onJobClick && onJobClick(job)}
+                  className="hover:bg-slate-50 transition-colors"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className={`${level === 0 ? 'ml-0' : level === 1 ? 'ml-6' : 'ml-12'} text-sm ${level === 0 ? 'font-bold text-blue-600' : level === 1 ? 'font-medium text-green-600' : 'font-medium text-purple-600'} flex items-center`}>
@@ -188,15 +187,22 @@ export const JobTable = ({ jobs, onJobClick, onDeleteJob }) => {
                     {formatDate(job.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteJob && onDeleteJob(job.id);
-                      }}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => onJobClick && onJobClick(job)}
+                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => onDeleteJob && onDeleteJob(job.id)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

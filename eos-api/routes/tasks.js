@@ -18,7 +18,8 @@ router.get('/', authMiddleware, async (req, res) => {
                t.plan_by, t.completed_by, t.completed_date,
                u.name as user_name,
                planner.name as plan_by_name,
-               completer.name as completed_by_name
+               completer.name as completed_by_name,
+               (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id) as comment_count
         FROM tasks t
         JOIN users u ON t.user_id = u.id
         LEFT JOIN users planner ON t.plan_by = planner.id

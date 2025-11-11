@@ -31,7 +31,7 @@ const formatDate = (dateString) => {
   }
 };
 
-export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
+export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users, onRefreshTasks }) => {
   const [jobs, setJobs] = useState([]);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [selectedTaskForComment, setSelectedTaskForComment] = useState(null);
@@ -74,13 +74,7 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
   };
 
   const handleCommentAdded = () => {
-    // Update comment count for the task
-    if (selectedTaskForComment) {
-      setTaskCommentCounts(prev => ({
-        ...prev,
-        [selectedTaskForComment.id]: (prev[selectedTaskForComment.id] || 0) + 1
-      }));
-    }
+    // Refresh will be triggered by parent component
   };
 
   const handleDeleteTask = async (e, task) => {
@@ -338,10 +332,10 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
                   <td className="px-4 py-4 whitespace-nowrap text-center">
                     <button
                       onClick={(e) => handleOpenComments(e, task)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all hover:shadow-md group"
                     >
-                      <MessageCircle size={14} />
-                      <span>{taskCommentCounts[task.id] || 0}</span>
+                      <MessageCircle size={16} className="group-hover:scale-110 transition-transform" />
+                      <span className="font-bold">{taskCommentCounts[task.id] || 0}</span>
                     </button>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-center">
@@ -381,7 +375,12 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users }) => {
           setSelectedTaskForComment(null);
         }}
         task={selectedTaskForComment}
-        onCommentAdded={handleCommentAdded}
+        onCommentAdded={() => {
+          // Refresh tasks from server to get updated comment count
+          if (onRefreshTasks) {
+            onRefreshTasks();
+          }
+        }}
       />
     </div>
   );

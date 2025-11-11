@@ -193,22 +193,22 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
   const typeLabel = type === 'category' ? 'Category' : type === 'parent' ? 'Parent' : 'Sub-Parent';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50">
+        <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-lg font-bold text-white">
                 {job ? `Edit ${typeLabel}` : `Create New ${typeLabel}`}
               </h3>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className="text-xs text-indigo-100 mt-0.5">
                 {type === 'category' ? 'Top-level work category' : type === 'parent' ? 'Sub-category under main category' : 'Sub-division of parent category'}
               </p>
             </div>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-2 hover:bg-white rounded-lg transition-colors"
+              className="text-white hover:text-indigo-100 p-2 hover:bg-white/10 rounded-lg transition-colors"
               title="Close (Esc)"
             >
               <X size={22} />
@@ -216,11 +216,11 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 bg-gradient-to-b from-white to-gray-50">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
           <div className="space-y-4">
               {type === 'category' && (
                 <div>
-                  <label htmlFor="category" className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label htmlFor="category" className="block text-sm font-semibold text-slate-700 mb-2">
                     Category Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -229,24 +229,22 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 text-sm shadow-sm transition-all ${
-                      errors.category ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500'
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-all ${
+                      errors.category ? 'border-red-500 focus:ring-red-100' : 'border-slate-300 focus:ring-indigo-100 focus:border-indigo-500'
                     }`}
                     placeholder="e.g., Web Development, Marketing, Design"
                     required
                     maxLength={100}
                   />
-                  {errors.category ? (
-                    <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">⚠️ {errors.category}</p>
-                  ) : (
-                    <p className="mt-1.5 text-xs text-gray-500">Main category for organizing work</p>
+                  {errors.category && (
+                    <p className="mt-1.5 text-xs text-red-600">{errors.category}</p>
                   )}
                 </div>
               )}
 
               {/* Department field for all types */}
               <div>
-                <label htmlFor="department_id" className="block text-xs font-semibold text-gray-700 mb-2">
+                <label htmlFor="department_id" className="block text-sm font-semibold text-slate-700 mb-2">
                   Department <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -254,35 +252,33 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                   name="department_id"
                   value={formData.department_id}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 text-sm shadow-sm transition-all ${
-                    errors.department_id ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-indigo-200 focus:border-indigo-500'
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-all bg-white ${
+                    errors.department_id ? 'border-red-500 focus:ring-red-100' : 'border-slate-300 focus:ring-indigo-100 focus:border-indigo-500'
                   }`}
                   required
                 >
                   <option value="">Choose a department</option>
                   {departments?.map(d => (
-                    <option key={d.id} value={d.id}>📁 {d.name}</option>
+                    <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
-                {errors.department_id ? (
-                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">⚠️ {errors.department_id}</p>
-                ) : (
-                  <p className="mt-1.5 text-xs text-gray-500">Assign this to a specific department</p>
+                {errors.department_id && (
+                  <p className="mt-1.5 text-xs text-red-600">{errors.department_id}</p>
                 )}
               </div>
 
               {type === 'parent' && (
                 <>
                   <div>
-                    <label htmlFor="parent" className="block text-sm font-medium text-gray-700 mb-1">
-                      Select Category *
+                    <label htmlFor="parent" className="block text-sm font-semibold text-slate-700 mb-2">
+                      Select Category <span className="text-red-500">*</span>
                     </label>
                     {(!formData.department_id) ? (
-                      <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50">
                         Enter department first
                       </div>
                     ) : loadingJobs ? (
-                      <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 animate-pulse">
+                      <div className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 animate-pulse">
                         Loading...
                       </div>
                     ) : (
@@ -291,8 +287,8 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                         name="parent"
                         value={formData.parent || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          errors.parent ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                          errors.parent ? 'border-red-500 focus:ring-red-100' : 'border-slate-300 focus:ring-indigo-100'
                         }`}
                         required
                       >
@@ -306,12 +302,12 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                           ))}
                       </select>
                     )}
-                    {errors.parent && <p className="mt-1 text-sm text-red-600">{errors.parent}</p>}
+                    {errors.parent && <p className="mt-1.5 text-xs text-red-600">{errors.parent}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="sub_parent" className="block text-sm font-medium text-gray-700 mb-1">
-                      Parent Name *
+                    <label htmlFor="sub_parent" className="block text-sm font-semibold text-slate-700 mb-2">
+                      Parent Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -319,13 +315,13 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                       name="sub_parent"
                       value={formData.sub_parent}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        errors.sub_parent ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.sub_parent ? 'border-red-500 focus:ring-red-100' : 'border-slate-300 focus:ring-indigo-100'
                       }`}
                       placeholder="Enter parent name (e.g. Backend)"
                       required
                     />
-                    {errors.sub_parent && <p className="mt-1 text-sm text-red-600">{errors.sub_parent}</p>}
+                    {errors.sub_parent && <p className="mt-1.5 text-xs text-red-600">{errors.sub_parent}</p>}
                   </div>
                 </>
               )}
@@ -333,15 +329,15 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
               {type === 'sub_parent' && (
                 <>
                   <div>
-                    <label htmlFor="parent" className="block text-sm font-medium text-gray-700 mb-1">
-                      Select Parent *
+                    <label htmlFor="parent" className="block text-sm font-semibold text-slate-700 mb-2">
+                      Select Parent <span className="text-red-500">*</span>
                     </label>
                     {(!formData.department_id) ? (
-                      <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50">
                         Enter department first
                       </div>
                     ) : loadingJobs ? (
-                      <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 animate-pulse">
+                      <div className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 animate-pulse">
                         Loading...
                       </div>
                     ) : (
@@ -350,8 +346,8 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                         name="parent"
                         value={formData.parent || ''}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          errors.parent ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                        className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                          errors.parent ? 'border-red-500 focus:ring-red-100' : 'border-slate-300 focus:ring-indigo-100'
                         }`}
                         required
                       >
@@ -365,12 +361,12 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                           ))}
                       </select>
                     )}
-                    {errors.parent && <p className="mt-1 text-sm text-red-600">{errors.parent}</p>}
+                    {errors.parent && <p className="mt-1.5 text-xs text-red-600">{errors.parent}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="sub_parent" className="block text-sm font-medium text-gray-700 mb-1">
-                      Sub Parent Name *
+                    <label htmlFor="sub_parent" className="block text-sm font-semibold text-slate-700 mb-2">
+                      Sub Parent Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -378,34 +374,35 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                       name="sub_parent"
                       value={formData.sub_parent}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                        errors.sub_parent ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 ${
+                        errors.sub_parent ? 'border-red-500 focus:ring-red-100' : 'border-slate-300 focus:ring-indigo-100'
                       }`}
                       placeholder="Enter sub parent name (e.g. API Development)"
                       required
                     />
-                    {errors.sub_parent && <p className="mt-1 text-sm text-red-600">{errors.sub_parent}</p>}
+                    {errors.sub_parent && <p className="mt-1.5 text-xs text-red-600">{errors.sub_parent}</p>}
                   </div>
                 </>
               )}
             </div>
-
-            <div className="mt-6 flex gap-3 pt-5 border-t-2 border-gray-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-5 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-5 py-3 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
-              >
-                {job ? '💾 Update' : '✨ Create'} {typeLabel}
-              </button>
-            </div>
           </form>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+          >
+            {job ? 'Update' : 'Create'} {typeLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

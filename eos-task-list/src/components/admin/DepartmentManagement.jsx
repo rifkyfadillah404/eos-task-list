@@ -225,33 +225,28 @@ export const DepartmentManagement = () => {
 
       {/* Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="w-full max-w-md bg-white shadow-2xl rounded-xl flex flex-col max-h-[85vh]">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-xl p-2.5 shadow-md">
-                  {editingDept ? <Edit2 size={20} /> : <Plus size={20} />}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {editingDept ? 'Edit Department' : 'Create New Department'}
-                  </h3>
-                  <p className="text-xs text-gray-600">
-                    {editingDept ? 'Update department information' : 'Add a new organizational unit'}
-                  </p>
-                </div>
+            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 rounded-t-xl">
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {editingDept ? 'Edit Department' : 'Create New Department'}
+                </h3>
+                <p className="text-xs text-indigo-100 mt-0.5">
+                  {editingDept ? 'Update department information' : 'Add a new organizational unit'}
+                </p>
               </div>
               <button
                 onClick={handleCloseForm}
-                className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+                className="rounded-lg p-2 text-white hover:text-indigo-100 transition-colors hover:bg-white/10"
                 title="Close (Esc)"
               >
                 <X size={22} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 p-6 bg-gradient-to-b from-white to-gray-50">
+            <form onSubmit={handleSubmit} className="space-y-4 p-6 overflow-y-auto flex-1">
               {error && (
                 <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
                   <AlertCircle size={16} className="flex-shrink-0" />
@@ -267,13 +262,8 @@ export const DepartmentManagement = () => {
               )}
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-700 flex items-center justify-between">
-                  <span>
-                    Department Name <span className="text-red-500">*</span>
-                  </span>
-                  <span className={`text-xs font-medium ${formData.name.length > 40 ? 'text-red-600' : 'text-gray-500'}`}>
-                    {formData.name.length}/50
-                  </span>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Department Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -282,18 +272,14 @@ export const DepartmentManagement = () => {
                   onChange={handleChange}
                   placeholder="e.g., Engineering, Marketing, Finance"
                   maxLength={50}
-                  className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-sm shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                   required
                 />
-                <p className="mt-1.5 text-xs text-gray-500">Name of the organizational unit</p>
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-700 flex items-center justify-between">
-                  <span>Department Code (Optional)</span>
-                  <span className="text-xs font-medium text-gray-500">
-                    {formData.code.length}/10
-                  </span>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Department Code
                 </label>
                 <input
                   type="text"
@@ -302,28 +288,28 @@ export const DepartmentManagement = () => {
                   onChange={handleChange}
                   placeholder="e.g., ENG, MKT, FIN"
                   maxLength={10}
-                  className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 text-sm shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                 />
-                <p className="mt-1.5 text-xs text-gray-500">Short abbreviation for quick reference</p>
-              </div>
-
-              <div className="flex gap-3 border-t-2 border-gray-200 pt-5">
-                <button
-                  type="button"
-                  onClick={handleCloseForm}
-                  className="flex-1 rounded-xl border-2 border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!formData.name.trim()}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed"
-                >
-                  {editingDept ? '💾 Update' : '✨ Create'} Department
-                </button>
               </div>
             </form>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+              <button
+                type="button"
+                onClick={handleCloseForm}
+                className="flex-1 px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!formData.name.trim()}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed"
+              >
+                {editingDept ? 'Update' : 'Create'} Department
+              </button>
+            </div>
           </div>
         </div>
       )}

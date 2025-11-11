@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, X, Users, Shield, AlertCircle, CheckCircle2, Searc
 import { DepartmentManagement } from './DepartmentManagement';
 
 export const UserManagement = () => {
-  const { users, departments, addUser, updateUser, deleteUser } = useAuth();
+  const { users, departments, addUser, updateUser, toggleUserActive, deleteUser } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -94,13 +94,29 @@ export const UserManagement = () => {
     }
   };
 
+  const handleToggleActive = async (userId, currentStatus) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    if (window.confirm(`Are you sure you want to ${action} this user?`)) {
+      const success = await toggleUserActive(userId);
+      if (success) {
+        setSuccess(`User ${action}d successfully!`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(`Failed to ${action} user`);
+        setTimeout(() => setError(''), 3000);
+      }
+    }
+  };
+
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       const success = await deleteUser(userId);
       if (success) {
         setSuccess('User deleted successfully!');
+        setTimeout(() => setSuccess(''), 3000);
       } else {
         setError('Failed to delete user');
+        setTimeout(() => setError(''), 3000);
       }
     }
   };
@@ -292,19 +308,34 @@ export const UserManagement = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-500">Account Status</span>
-                <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                  Active
+                <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                  user.is_active 
+                    ? 'bg-emerald-50 text-emerald-700' 
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  {user.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
 
-            <div className="relative mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
+            <div className="relative mt-6 flex items-center justify-between gap-2 border-t border-slate-200 pt-4">
               <button
                 onClick={() => handleOpenForm(user)}
                 className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition hover:-translate-y-0.5 hover:bg-indigo-100"
               >
                 <Edit2 size={16} />
                 Edit
+              </button>
+              <button
+                onClick={() => handleToggleActive(user.id, user.is_active)}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition hover:-translate-y-0.5 ${
+                  user.is_active
+                    ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                    : 'bg-green-50 text-green-600 hover:bg-green-100'
+                }`}
+              >
+                <UserCheck size={16} />
+                {user.is_active ? 'Deactivate' : 'Activate'}
               </button>
               <button
                 onClick={() => handleDeleteUser(user.id)}
@@ -328,143 +359,150 @@ export const UserManagement = () => {
         </div>
       )}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-purple-600">
               <div className="flex items-center gap-3">
                 {editingUser ? (
                   <>
-                    <Edit2 size={24} className="text-indigo-600 animate-float float-delay-1" />
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Edit2 size={22} className="text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white">
                       Edit User
                     </h3>
                   </>
                 ) : (
                   <>
-                    <Plus size={24} className="text-indigo-600 animate-float float-delay-1" />
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      Add User
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <UserPlus size={22} className="text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Add New User
                     </h3>
                   </>
                 )}
               </div>
               <button
                 onClick={handleCloseForm}
-                className="p-2 hover:bg-white rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:scale-110 transform"
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors text-white"
               >
-                <X size={24} />
+                <X size={22} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {/* Form Body */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
               {error && (
-                <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm font-medium border-2 border-red-200 flex items-center gap-2 animate-slide-in-left stagger-1">
+                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-200 flex items-center gap-2">
                   <AlertCircle size={18} className="flex-shrink-0" />
-                  {error}
+                  <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div className="p-4 bg-green-50 text-green-700 rounded-lg text-sm font-medium border-2 border-green-200 flex items-center gap-2 animate-slide-in-left stagger-1">
+                <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-200 flex items-center gap-2">
                   <CheckCircle2 size={18} className="flex-shrink-0" />
-                  {success}
+                  <span>{success}</span>
                 </div>
               )}
 
-              <div className="animate-slide-in-left stagger-2">
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Full Name
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="Enter full name"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+                  placeholder="John Doe"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                   required
                 />
               </div>
 
-              <div className="animate-slide-in-left stagger-3">
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  User ID
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  User ID <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="userId"
                   value={formData.userId}
                   onChange={handleChange}
-                  placeholder="Enter user ID"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+                  placeholder="john.doe"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                   required
                 />
               </div>
 
-              <div className="animate-slide-in-left stagger-4">
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Password
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Enter password"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
                   required
                 />
               </div>
 
-              <div className="animate-slide-in-left stagger-4">
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Department
                 </label>
                 <select
                   name="department_id"
                   value={formData.department_id}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all hover:border-indigo-300"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all bg-white"
                 >
-                  <option value="">Select department</option>
+                  <option value="">Select department (optional)</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="animate-slide-in-left stagger-5">
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                   <Shield size={16} className="text-indigo-600" />
-                  Role
+                  Role <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium hover:border-indigo-300"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium bg-white"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
-
-              <div className="flex gap-3 pt-4 border-t border-gray-200 animate-slide-in-left stagger-5">
-                <button
-                  type="button"
-                  onClick={handleCloseForm}
-                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
-                >
-                  {editingUser ? 'Update' : 'Add'} User
-                </button>
-              </div>
             </form>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+              <button
+                type="button"
+                onClick={handleCloseForm}
+                className="flex-1 px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                {editingUser ? 'Update User' : 'Add User'}
+              </button>
+            </div>
           </div>
         </div>
       )}

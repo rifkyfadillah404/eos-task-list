@@ -177,26 +177,21 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-xl p-2.5 shadow-md">
-              {task ? <Edit2 size={20} /> : <Plus size={20} />}
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">
-                {task ? 'Edit Task' : 'Create New Task'}
-              </h2>
-              <p className="text-xs text-gray-600">
-                {task ? 'Update task details' : 'Fill in the details below'}
-              </p>
-            </div>
+        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl">
+          <div>
+            <h2 className="text-lg font-bold text-white">
+              {task ? 'Edit Task' : 'Create New Task'}
+            </h2>
+            <p className="text-xs text-indigo-100 mt-0.5">
+              {task ? 'Update task details' : 'Fill in the details below'}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600 hover:text-gray-900"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white hover:text-indigo-100"
             title="Close (Esc)"
           >
             <X size={22} />
@@ -204,14 +199,14 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto bg-gradient-to-b from-white to-gray-50">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
+            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
               <span>
                 Task Title <span className="text-red-500">*</span>
               </span>
-              <span className={`text-xs font-medium ${formData.title.length > 80 ? 'text-red-600' : 'text-gray-500'}`}>
+              <span className={`text-xs font-medium ${formData.title.length > 80 ? 'text-red-600' : 'text-slate-500'}`}>
                 {formData.title.length}/100
               </span>
             </label>
@@ -222,17 +217,16 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
               onChange={handleChange}
               placeholder="e.g., Design landing page mockup"
               maxLength="100"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-sm shadow-sm"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-sm"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">Be specific and clear about what needs to be done</p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center justify-between">
-              <span>Description (Optional)</span>
-              <span className={`text-xs font-medium ${formData.description.length > 450 ? 'text-red-600' : 'text-gray-500'}`}>
+            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center justify-between">
+              <span>Description</span>
+              <span className={`text-xs font-medium ${formData.description.length > 450 ? 'text-red-600' : 'text-slate-500'}`}>
                 {formData.description.length}/500
               </span>
             </label>
@@ -243,25 +237,23 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
               placeholder="Add more details, requirements, or context..."
               rows="3"
               maxLength="500"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all resize-none text-sm shadow-sm"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all resize-none text-sm"
             />
           </div>
 
           {/* Job Selection */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-2">
-              Job / Work Category (Optional)
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Job / Work Category
             </label>
-            {!isAdmin && user?.department_id ? (
-              <div className="text-xs text-blue-700 bg-blue-50 px-3 py-2 rounded-lg mb-2 border border-blue-200 flex items-center gap-2">
+            {!isAdmin && user?.department_id && (
+              <div className="text-xs text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg mb-2 border border-blue-200 flex items-center gap-2">
                 <span>💼</span>
                 <span>Showing jobs from your department only</span>
               </div>
-            ) : (
-              <p className="text-xs text-gray-600 mb-2">Link this task to a specific job category for better organization</p>
             )}
             {loadingJobs ? (
-              <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 animate-pulse">
+              <div className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 animate-pulse text-sm">
                 Loading jobs...
               </div>
             ) : (
@@ -270,7 +262,7 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
                   name="job_id"
                   value={formData.job_id || ''}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all bg-white text-sm shadow-sm"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all bg-white text-sm"
                 >
                   <option value="">No specific job (General task)</option>
                   {jobs.length === 0 ? (
@@ -442,15 +434,15 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
           <div className="grid grid-cols-2 gap-4">
             {/* Priority */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
                 <Circle size={14} className="text-red-500" />
-                Priority Level
+                Priority <span className="text-red-500">*</span>
               </label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-sm shadow-sm"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium text-sm bg-white"
               >
                 <option value="low">🟢 Low</option>
                 <option value="medium">🟡 Medium</option>
@@ -460,15 +452,15 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
 
             {/* Status */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
                 <Zap size={14} className="text-blue-500" />
-                Task Status
+                Status <span className="text-red-500">*</span>
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-sm shadow-sm"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium text-sm bg-white"
               >
                 <option value="plan">📝 Plan</option>
                 <option value="in_progress">🔄 In Progress</option>
@@ -479,37 +471,36 @@ export const TaskForm = ({ isOpen, onClose, onSubmit, task, defaultStatus = 'pla
 
           {/* Due Date */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-2">
-              Due Date & Time (Optional)
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Due Date & Time
             </label>
             <input
               type="datetime-local"
               name="due_date"
               value={formData.due_date}
               onChange={handleChange}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-sm shadow-sm"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-sm"
             />
-            <p className="text-xs text-gray-500 mt-1">Set a deadline to track task completion</p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-5 border-t-2 border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-5 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-all border-2 border-gray-300 text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!formData.title.trim()}
-              className="flex-1 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed text-sm"
-            >
-              {task ? '💾 Update Task' : '✨ Create Task'}
-            </button>
           </div>
         </form>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!formData.title.trim()}
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:cursor-not-allowed"
+          >
+            {task ? 'Update Task' : 'Create Task'}
+          </button>
+        </div>
       </div>
     </div>
   );

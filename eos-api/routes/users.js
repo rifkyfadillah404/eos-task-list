@@ -14,7 +14,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     if (req.user.role === 'admin') {
       query = `
-        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id,
+        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id, u.is_active,
                d.name as department_name
         FROM users u
         LEFT JOIN departments d ON d.id = u.department_id
@@ -33,7 +33,7 @@ router.get('/', authMiddleware, async (req, res) => {
       
       request.input('department_id', userDeptId);
       query = `
-        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id,
+        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id, u.is_active,
                d.name as department_name
         FROM users u
         LEFT JOIN departments d ON d.id = u.department_id
@@ -68,7 +68,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const result = await pool.request()
       .input('id', parseInt(id))
       .query(`
-        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id,
+        SELECT u.id, u.name, u.userId, u.role, u.created_at, u.department_id, u.is_active,
                d.name as department_name
         FROM users u
         LEFT JOIN departments d ON d.id = u.department_id
@@ -214,6 +214,42 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
+// Toggle user active status (admin only)
+router.patch('/:id/toggle-active', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+
+    // Get current status
+    const checkUser = await pool.request()
+      .input('id', parseInt(id))
+      .query('SELECT id, is_active FROM users WHERE id = @id');
+
+    if (checkUser.recordset.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const currentStatus = checkUser.recordset[0].is_active;
+    const newStatus = !currentStatus;
+
+    // Update status
+    await pool.request()
+      .input('id', parseInt(id))
+      .input('is_active', newStatus)
+      .query('UPDATE users SET is_active = @is_active, updated_at = GETUTCDATE() WHERE id = @id');
+
+    res.json({
+      success: true,
+      message: `User ${newStatus ? 'activated' : 'deactivated'} successfully`,
+      is_active: newStatus
+    });
+
+  } catch (error) {
+    console.error('Toggle user active error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete user (admin only)
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -247,3 +283,4 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 export default router;
+

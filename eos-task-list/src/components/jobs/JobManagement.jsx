@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { JobTable, JobForm } from './';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, FolderTree, Layers, GitBranch } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const JobManagement = () => {
@@ -151,64 +151,67 @@ export const JobManagement = () => {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-semibold text-slate-900">Job Management</h2>
-          <p className="text-sm text-slate-500">Manage job codes, categories, and hierarchies</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => handleAddJob('category')}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-          >
-            <Plus size={16} />
-            New Category
-          </button>
-          <button
-            onClick={() => handleAddJob('parent')}
-            className="flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-500"
-          >
-            <Plus size={16} />
-            New Parent
-          </button>
-          <button
-            onClick={() => handleAddJob('sub_parent')}
-            className="flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-500"
-          >
-            <Plus size={16} />
-            New Sub-Parent
-          </button>
-          <div className="flex items-center gap-2">
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-sm text-slate-700 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Job Management</h2>
+            <p className="text-sm text-slate-500 mt-1">Manage job categories, parents, and hierarchies</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleAddJob('category')}
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
             >
-              <option value="">All Departments</option>
-              {departments?.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
+              <FolderTree size={16} />
+              Category
+            </button>
+            <button
+              onClick={() => handleAddJob('parent')}
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+              <Layers size={16} />
+              Parent
+            </button>
+            <button
+              onClick={() => handleAddJob('sub_parent')}
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+              <GitBranch size={16} />
+              Sub-Parent
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="relative w-full sm:w-72">
-          <input
-            type="text"
-            placeholder="Search jobs by code, name, or category"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-          />
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Filters */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search jobs by name or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          </div>
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-white py-2.5 px-4 text-sm text-slate-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">All Departments</option>
+            {departments?.map(dept => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
+      {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <JobTable 
           jobs={filteredJobs} 

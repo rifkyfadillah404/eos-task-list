@@ -26,7 +26,6 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
   const [jobs, setJobs] = useState([]);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [updateCountCallback, setUpdateCountCallback] = useState(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -153,9 +152,8 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
                       isDragging={false}
                       statusVariant={task.status}
                       jobs={jobs}
-                      onOpenComments={(task, updateCallback) => {
+                      onOpenComments={(task) => {
                         setSelectedTask(task);
-                        setUpdateCountCallback(() => updateCallback);
                         setCommentModalOpen(true);
                       }}
                     />
@@ -172,13 +170,10 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
           onClose={() => {
             setCommentModalOpen(false);
             setSelectedTask(null);
-            setUpdateCountCallback(null);
           }}
           task={selectedTask}
-          onCommentAdded={(newCount) => {
-            if (updateCountCallback) {
-              updateCountCallback(newCount);
-            }
+          onCommentAdded={() => {
+            // Always refresh tasks to get updated comment count from server
             if (onRefreshTasks) {
               onRefreshTasks();
             }
@@ -220,9 +215,8 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
                 onAddTask={typeof onAddTask === 'function' ? () => onAddTask(column.id) : undefined}
                 activeStatus={activeStatus}
                 jobs={jobs}
-                onOpenComments={(task, updateCallback) => {
+                onOpenComments={(task) => {
                   setSelectedTask(task);
-                  setUpdateCountCallback(() => updateCallback);
                   setCommentModalOpen(true);
                 }}
               />
@@ -245,13 +239,10 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
         onClose={() => {
           setCommentModalOpen(false);
           setSelectedTask(null);
-          setUpdateCountCallback(null);
         }}
         task={selectedTask}
         onCommentAdded={(newCount) => {
-          if (updateCountCallback) {
-            updateCountCallback(newCount);
-          }
+          // Always refresh tasks to get updated comment count from server
           if (onRefreshTasks) {
             onRefreshTasks();
           }
