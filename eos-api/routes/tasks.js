@@ -256,6 +256,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
         updateFields.push('completed_date = GETDATE()');
         request.input('completed_by', req.user.id);
       }
+      // If status changed from completed to other status, reset completed_by and completed_date
+      else if (status !== 'completed' && task.current_status === 'completed') {
+        updateFields.push('completed_by = NULL');
+        updateFields.push('completed_date = NULL');
+      }
     }
     if (job_id !== undefined) {
       updateFields.push('job_id = @job_id');
