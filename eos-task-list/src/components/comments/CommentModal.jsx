@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Send, MessageCircle, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -153,7 +154,7 @@ export const CommentModal = ({ isOpen, onClose, task, onCommentAdded }) => {
   }
 
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm" onClick={onClose}>
       <div 
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative z-[10000]"
@@ -299,4 +300,6 @@ export const CommentModal = ({ isOpen, onClose, task, onCommentAdded }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

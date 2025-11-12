@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { X } from 'lucide-react';
 
@@ -209,8 +210,8 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm">
       <div className="bg-white rounded-xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl">
@@ -427,4 +428,6 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
 export const ConfirmModal = ({ 
@@ -52,9 +53,9 @@ export const ConfirmModal = ({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div 
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
@@ -102,4 +103,6 @@ export const ConfirmModal = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
