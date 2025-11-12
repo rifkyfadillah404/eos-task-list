@@ -192,6 +192,23 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
 
   const typeLabel = type === 'category' ? 'Category' : type === 'parent' ? 'Parent' : 'Sub-Parent';
 
+  // Helper function to get job level/depth in hierarchy
+  const getJobLevel = (job) => {
+    if (!job.parent) return 0; // Category level
+    
+    // Find parent job
+    const parentJob = jobs.find(j => j.id === parseInt(job.parent));
+    if (!parentJob) return 0;
+    
+    if (!parentJob.parent) {
+      // Parent's parent is null, so this job is level 1 (Parent)
+      return 1;
+    } else {
+      // Parent's parent exists, so this job is level 2+ (Sub-parent or deeper)
+      return 2;
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
@@ -353,7 +370,11 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
                       >
                         <option value="">Select a parent</option>
                         {jobs
-                          .filter(job => job.parent !== null && job.sub_parent === null && Number(job.department_id) === Number(formData.department_id))
+                          .filter(job => {
+                            // Only show Parent level jobs (level 1)
+                            const level = getJobLevel(job);
+                            return level === 1 && Number(job.department_id) === Number(formData.department_id);
+                          })
                           .map(job => (
                             <option key={job.id} value={job.id}>
                               {job.category}

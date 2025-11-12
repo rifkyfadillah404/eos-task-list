@@ -1,6 +1,7 @@
 import { Calendar, Users, AlertCircle, CheckCircle2, Clock, MessageCircle, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CommentModal } from '../comments';
+import { ConfirmModal } from '../common/ConfirmModal';
 import { useAuth } from '../../context/AuthContext';
 import { useTask } from '../../context/TaskContext';
 
@@ -37,6 +38,8 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users, onRefreshTask
   const [selectedTaskForComment, setSelectedTaskForComment] = useState(null);
   const [taskCommentCounts, setTaskCommentCounts] = useState({});
   const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const { user } = useAuth();
   const { deleteTask } = useTask();
 
@@ -77,20 +80,24 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users, onRefreshTask
     // Refresh will be triggered by parent component
   };
 
-  const handleDeleteTask = async (e, task) => {
+  const handleDeleteTask = (e, task) => {
     e.stopPropagation();
-    
     if (deletingTaskId === task.id) return;
+    setTaskToDelete(task);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
     
-    if (!confirm(`Yakin mau hapus task "${task.title}"?`)) return;
-    
-    setDeletingTaskId(task.id);
+    setDeletingTaskId(taskToDelete.id);
     try {
-      await deleteTask(task.id);
+      await deleteTask(taskToDelete.id);
     } catch (error) {
       alert('Gagal hapus task: ' + error.message);
     } finally {
       setDeletingTaskId(null);
+      setTaskToDelete(null);
     }
   };
 
@@ -381,6 +388,21 @@ export const TaskTable = ({ tasks, onTaskClick, onTaskMove, users, onRefreshTask
             onRefreshTasks();
           }
         }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setTaskToDelete(null);
+        }}
+        onConfirm={confirmDeleteTask}
+        title="Hapus Task"
+        message={`Yakin mau hapus task "${taskToDelete?.title}"? Action ini tidak bisa di-undo.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        type="danger"
       />
     </div>
   );

@@ -231,7 +231,7 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   }
 });
 
-// Delete job (admin only)
+// Delete job (admin only) - with cascade delete for hierarchy
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -246,14 +246,52 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    // Delete job
-    await pool.request()
-      .input('id', parseInt(id))
-      .query('DELETE FROM jobs WHERE id = @id');
+    // Recursive function to get all child job IDs
+    async function getAllChildJobIds(parentId) {
+      const childIds = [parentId];
+      
+      // Find direct children
+      const children = await pool.request()
+        .input('parent', parentId)
+        .query('SELECT id FROM jobs WHERE parent = @parent');
+      
+      // Recursively get all descendants
+      for (const child of children.recordset) {
+        const descendants = await getAllChildJobIds(child.id);
+        childIds.push(...descendants);
+      }
+      
+      return childIds;
+    }
+
+    // Get all job IDs to delete (including children)
+    const jobIdsToDelete = await getAllChildJobIds(parseInt(id));
+    
+    console.log('Jobs to delete (cascade):', jobIdsToDelete);
+
+    // Delete all tasks that reference any of these jobs
+    if (jobIdsToDelete.length > 0) {
+      const jobIdsString = jobIdsToDelete.join(',');
+      await pool.request()
+        .query(`DELETE FROM tasks WHERE job_id IN (${jobIdsString})`);
+      
+      console.log('Deleted tasks for jobs:', jobIdsString);
+    }
+
+    // Delete all jobs (children first, then parent)
+    // Reverse the array to delete children before parents
+    const reversedIds = [...jobIdsToDelete].reverse();
+    for (const jobId of reversedIds) {
+      await pool.request()
+        .input('jobId', jobId)
+        .query('DELETE FROM jobs WHERE id = @jobId');
+    }
 
     res.json({
       success: true,
-      message: 'Job deleted successfully'
+      message: `Job and ${jobIdsToDelete.length - 1} child job(s) deleted successfully`,
+      deletedJobs: jobIdsToDelete.length,
+      deletedJobIds: jobIdsToDelete
     });
   } catch (error) {
     console.error('Delete job error:', error);

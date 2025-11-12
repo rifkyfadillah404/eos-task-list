@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, Edit2, Trash2, X, Users, Shield, AlertCircle, CheckCircle2, Search, Filter, UserPlus, UserCheck, UserCircle, Building2 } from 'lucide-react';
 import { DepartmentManagement } from './DepartmentManagement';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 export const UserManagement = () => {
   const { users, departments, addUser, updateUser, toggleUserActive, deleteUser } = useAuth();
@@ -18,6 +19,10 @@ export const UserManagement = () => {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [toggleModalOpen, setToggleModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [userToToggle, setUserToToggle] = useState(null);
 
   const handleOpenForm = (user = null) => {
     setError('');
@@ -94,31 +99,43 @@ export const UserManagement = () => {
     }
   };
 
-  const handleToggleActive = async (userId, currentStatus) => {
-    const action = currentStatus ? 'deactivate' : 'activate';
-    if (window.confirm(`Are you sure you want to ${action} this user?`)) {
-      const success = await toggleUserActive(userId);
-      if (success) {
-        setSuccess(`User ${action}d successfully!`);
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError(`Failed to ${action} user`);
-        setTimeout(() => setError(''), 3000);
-      }
-    }
+  const handleToggleActive = (user) => {
+    setUserToToggle(user);
+    setToggleModalOpen(true);
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      const success = await deleteUser(userId);
-      if (success) {
-        setSuccess('User deleted successfully!');
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError('Failed to delete user');
-        setTimeout(() => setError(''), 3000);
-      }
+  const confirmToggleActive = async () => {
+    if (!userToToggle) return;
+    
+    const action = userToToggle.is_active ? 'deactivate' : 'activate';
+    const success = await toggleUserActive(userToToggle.id);
+    if (success) {
+      setSuccess(`User ${action}d successfully!`);
+      setTimeout(() => setSuccess(''), 3000);
+    } else {
+      setError(`Failed to ${action} user`);
+      setTimeout(() => setError(''), 3000);
     }
+    setUserToToggle(null);
+  };
+
+  const handleDeleteUser = (user) => {
+    setUserToDelete(user);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    const success = await deleteUser(userToDelete.id);
+    if (success) {
+      setSuccess('User deleted successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } else {
+      setError('Failed to delete user');
+      setTimeout(() => setError(''), 3000);
+    }
+    setUserToDelete(null);
   };
 
   const handleChange = (e) => {
@@ -327,7 +344,7 @@ export const UserManagement = () => {
                 Edit
               </button>
               <button
-                onClick={() => handleToggleActive(user.id, user.is_active)}
+                onClick={() => handleToggleActive(user)}
                 className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition hover:-translate-y-0.5 ${
                   user.is_active
                     ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
@@ -338,7 +355,7 @@ export const UserManagement = () => {
                 {user.is_active ? 'Deactivate' : 'Activate'}
               </button>
               <button
-                onClick={() => handleDeleteUser(user.id)}
+                onClick={() => handleDeleteUser(user)}
                 className="flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:-translate-y-0.5 hover:bg-rose-100"
               >
                 <Trash2 size={16} />
@@ -506,6 +523,36 @@ export const UserManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setUserToDelete(null);
+        }}
+        onConfirm={confirmDeleteUser}
+        title="Delete User"
+        message={`Are you sure you want to delete user "${userToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Toggle Active Confirmation Modal */}
+      <ConfirmModal
+        isOpen={toggleModalOpen}
+        onClose={() => {
+          setToggleModalOpen(false);
+          setUserToToggle(null);
+        }}
+        onConfirm={confirmToggleActive}
+        title={`${userToToggle?.is_active ? 'Deactivate' : 'Activate'} User`}
+        message={`Are you sure you want to ${userToToggle?.is_active ? 'deactivate' : 'activate'} user "${userToToggle?.name}"?`}
+        confirmText={`Yes, ${userToToggle?.is_active ? 'Deactivate' : 'Activate'}`}
+        cancelText="Cancel"
+        type={userToToggle?.is_active ? 'warning' : 'info'}
+      />
     </div>
   );
 };

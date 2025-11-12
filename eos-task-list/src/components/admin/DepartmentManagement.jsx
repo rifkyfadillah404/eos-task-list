@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, Edit2, Trash2, X, Building2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 export const DepartmentManagement = () => {
   const { departments, token, fetchDepartments } = useAuth();
@@ -9,6 +10,8 @@ export const DepartmentManagement = () => {
   const [formData, setFormData] = useState({ name: '', code: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deptToDelete, setDeptToDelete] = useState(null);
 
   const API_URL = 'http://localhost:3000/api';
 
@@ -83,13 +86,16 @@ export const DepartmentManagement = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this department?')) {
-      return;
-    }
+  const handleDelete = (dept) => {
+    setDeptToDelete(dept);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deptToDelete) return;
 
     try {
-      const response = await fetch(`${API_URL}/departments/${id}`, {
+      const response = await fetch(`${API_URL}/departments/${deptToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -103,6 +109,7 @@ export const DepartmentManagement = () => {
 
       setSuccess('Department deleted successfully!');
       await fetchDepartments(token);
+      setDeptToDelete(null);
 
       setTimeout(() => {
         setSuccess('');
@@ -204,7 +211,7 @@ export const DepartmentManagement = () => {
                 Edit
               </button>
               <button
-                onClick={() => handleDelete(dept.id)}
+                onClick={() => handleDelete(dept)}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
               >
                 <Trash2 size={14} />
@@ -313,6 +320,21 @@ export const DepartmentManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeptToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Department"
+        message={`Are you sure you want to delete department "${deptToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

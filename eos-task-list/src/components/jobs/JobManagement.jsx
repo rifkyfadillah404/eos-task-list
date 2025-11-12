@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { JobTable, JobForm } from './';
 import { Search, Plus, FolderTree, Layers, GitBranch } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 export const JobManagement = () => {
   const { token, user, departments, fetchDepartments } = useAuth();
@@ -12,6 +13,8 @@ export const JobManagement = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formType, setFormType] = useState('category'); // 'category', 'parent', or 'sub_parent'
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState(null);
 
   const API_URL = 'http://localhost:3000/api';
 
@@ -68,17 +71,36 @@ export const JobManagement = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteJob = async (id) => {
+  const countChildJobs = (parentId) => {
+    let count = 0;
+    const children = jobs.filter(j => parseInt(j.parent) === parentId);
+    
+    children.forEach(child => {
+      count++; // Count the child itself
+      count += countChildJobs(child.id); // Count its descendants
+    });
+    
+    return count;
+  };
+
+  const handleDeleteJob = (id) => {
     if (user?.role !== 'admin') {
       alert('Only admin can delete jobs.');
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this job?')) {
-      return;
+    const job = jobs.find(j => j.id === id);
+    if (job) {
+      job.childCount = countChildJobs(job.id);
     }
+    setJobToDelete(job);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteJob = async () => {
+    if (!jobToDelete) return;
 
     try {
-      const response = await fetch(`${API_URL}/jobs/${id}`, {
+      const response = await fetch(`${API_URL}/jobs/${jobToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -88,6 +110,7 @@ export const JobManagement = () => {
       if (!response.ok) throw new Error('Failed to delete job');
       
       fetchJobs(); // Refresh the list
+      setJobToDelete(null);
     } catch (err) {
       alert('Failed to delete job');
     }
@@ -229,6 +252,25 @@ export const JobManagement = () => {
         onSubmit={handleSubmitJob}
         job={selectedJob}
         type={formType}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setJobToDelete(null);
+        }}
+        onConfirm={confirmDeleteJob}
+        title="Delete Job"
+        message={
+          jobToDelete?.childCount > 0 
+            ? `Are you sure you want to delete "${jobToDelete?.category}"? This will also delete ${jobToDelete.childCount} child job(s) and all related tasks. This action cannot be undone.`
+            : `Are you sure you want to delete "${jobToDelete?.category}"? All tasks related to this job will also be deleted. This action cannot be undone.`
+        }
+        confirmText="Yes, Delete All"
+        cancelText="Cancel"
+        type="danger"
       />
     </div>
   );
