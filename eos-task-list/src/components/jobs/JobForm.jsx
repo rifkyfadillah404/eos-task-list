@@ -107,7 +107,7 @@ export const JobForm = ({ isOpen, onClose, onSubmit, job, type = 'category' }) =
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const newErrors = {};

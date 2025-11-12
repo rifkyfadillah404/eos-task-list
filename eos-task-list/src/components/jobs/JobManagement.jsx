@@ -141,13 +141,16 @@ export const JobManagement = () => {
         });
       }
       
-      if (!response.ok) throw new Error('Failed to save job');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save job');
+      }
       
       setIsFormOpen(false);
       setSelectedJob(null);
       fetchJobs(); // Refresh the list
     } catch (err) {
-      alert('Failed to save job');
+      alert(err.message || 'Failed to save job');
     }
   };
 

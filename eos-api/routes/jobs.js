@@ -122,6 +122,36 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
       }
     }
 
+    // Check for duplicates
+    const duplicateCheck = await pool.request()
+      .input('category', category)
+      .input('parent', parent ? parseInt(parent) : null)
+      .input('department_id', parseInt(department_id))
+      .query(`
+        SELECT id FROM jobs 
+        WHERE LOWER(category) = LOWER(@category) 
+        AND (parent = @parent OR (parent IS NULL AND @parent IS NULL))
+        AND department_id = @department_id
+      `);
+
+    if (duplicateCheck.recordset.length > 0) {
+      let errorMessage = '';
+      if (!parent) {
+        errorMessage = 'This category name already exists in the selected department';
+      } else {
+        const parentJob = await pool.request()
+          .input('parentId', parseInt(parent))
+          .query('SELECT parent FROM jobs WHERE id = @parentId');
+        
+        if (parentJob.recordset.length > 0 && parentJob.recordset[0].parent === null) {
+          errorMessage = 'This parent name already exists under the selected category';
+        } else {
+          errorMessage = 'This sub-parent name already exists under the selected parent';
+        }
+      }
+      return res.status(409).json({ error: errorMessage });
+    }
+
     const result = await pool.request()
       .input('user_id', req.user.id)
       .input('category', category)
@@ -165,11 +195,13 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     // Check if job exists
     const job = await pool.request()
       .input('id', parseInt(id))
-      .query('SELECT id FROM jobs WHERE id = @id');
+      .query('SELECT id, category, parent, department_id FROM jobs WHERE id = @id');
 
     if (job.recordset.length === 0) {
       return res.status(404).json({ error: 'Job not found or unauthorized' });
     }
+
+    const currentJob = job.recordset[0];
 
     // If parent is provided, validate that it exists
     if (parent) {
@@ -180,6 +212,42 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
       if (parentCheck.recordset.length === 0) {
         return res.status(400).json({ error: 'Parent job not found' });
       }
+    }
+
+    // Check for duplicates (only if category, parent, or department_id is being changed)
+    const newCategory = category !== undefined ? category : currentJob.category;
+    const newParent = parent !== undefined ? (parent ? parseInt(parent) : null) : currentJob.parent;
+    const newDepartmentId = department_id !== undefined ? parseInt(department_id) : currentJob.department_id;
+
+    const duplicateCheck = await pool.request()
+      .input('category', newCategory)
+      .input('parent', newParent)
+      .input('department_id', newDepartmentId)
+      .input('currentId', parseInt(id))
+      .query(`
+        SELECT id FROM jobs 
+        WHERE LOWER(category) = LOWER(@category) 
+        AND (parent = @parent OR (parent IS NULL AND @parent IS NULL))
+        AND department_id = @department_id
+        AND id != @currentId
+      `);
+
+    if (duplicateCheck.recordset.length > 0) {
+      let errorMessage = '';
+      if (!newParent) {
+        errorMessage = 'This category name already exists in the selected department';
+      } else {
+        const parentJob = await pool.request()
+          .input('parentId', newParent)
+          .query('SELECT parent FROM jobs WHERE id = @parentId');
+        
+        if (parentJob.recordset.length > 0 && parentJob.recordset[0].parent === null) {
+          errorMessage = 'This parent name already exists under the selected category';
+        } else {
+          errorMessage = 'This sub-parent name already exists under the selected parent';
+        }
+      }
+      return res.status(409).json({ error: errorMessage });
     }
 
     // Build update query
