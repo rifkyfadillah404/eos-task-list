@@ -27,6 +27,19 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     }
 
     const pool = getPool();
+
+    // Check for duplicate department name
+    const duplicateCheck = await pool.request()
+      .input('name', name)
+      .query(`
+        SELECT id FROM departments 
+        WHERE LOWER(name) = LOWER(@name)
+      `);
+
+    if (duplicateCheck.recordset.length > 0) {
+      return res.status(409).json({ error: 'A department with this name already exists' });
+    }
+
     const result = await pool.request()
       .input('name', name)
       .input('code', code || null)
@@ -50,6 +63,22 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     const { id } = req.params;
     const { name, code } = req.body;
     const pool = getPool();
+
+    // Check for duplicate department name (excluding current department)
+    if (name !== undefined) {
+      const duplicateCheck = await pool.request()
+        .input('name', name)
+        .input('id', parseInt(id))
+        .query(`
+          SELECT id FROM departments 
+          WHERE LOWER(name) = LOWER(@name)
+          AND id != @id
+        `);
+
+      if (duplicateCheck.recordset.length > 0) {
+        return res.status(409).json({ error: 'A department with this name already exists' });
+      }
+    }
 
     let updateFields = [];
     const request = pool.request().input('id', parseInt(id));
