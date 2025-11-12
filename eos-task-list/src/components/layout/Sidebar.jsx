@@ -15,7 +15,7 @@ export const Sidebar = ({
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-    { id: 'boards', label: 'Board', icon: LayoutGrid },
+    { id: 'boards', label: 'Kanban', icon: LayoutGrid },
     ...(isAdmin 
       ? [
           { id: 'users', label: 'User Management', icon: Users },

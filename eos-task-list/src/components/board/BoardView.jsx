@@ -125,25 +125,25 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
   if (!enableDrag) {
     return (
       <>
-        <div className="flex gap-6 overflow-x-auto pb-6">
+        <div className="flex gap-3 sm:gap-6 overflow-x-auto pb-6 px-2 sm:px-0 -mx-2 sm:mx-0">
           {columns.map((column) => {
             const columnTasks = getTasksByStatus(column.id);
 
             return (
               <div
                 key={column.id}
-                className="flex-shrink-0 w-96 rounded-lg p-4 min-h-96 bg-transparent"
+                className="flex-shrink-0 w-[280px] sm:w-80 md:w-96 rounded-lg p-3 sm:p-4 min-h-96 bg-transparent"
               >
-                <div className={`${column.color} rounded-lg p-4 mb-4`}>
+                <div className={`${column.color} rounded-lg p-3 sm:p-4 mb-3 sm:mb-4`}>
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">{column.label}</h3>
-                    <span className="text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded">
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-900">{column.label}</h3>
+                    <span className="text-xs sm:text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded">
                       {columnTasks.length}
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-3 min-h-96">
+                <div className="space-y-2 sm:space-y-3 min-h-96">
                   {columnTasks.map((task) => (
                     <TaskCard
                       key={task.id}
@@ -197,7 +197,7 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
         threshold: { x: 0.15, y: 0.1 },
       }}
     >
-      <div className="flex gap-6 overflow-x-auto pb-6">
+      <div className="flex gap-3 sm:gap-6 overflow-x-auto pb-6 px-2 sm:px-0 -mx-2 sm:mx-0">
         {columns.map((column) => {
           const columnTasks = getTasksByStatus(column.id);
           const taskIds = columnTasks.map(task => String(task.id));
@@ -227,7 +227,7 @@ export const BoardView = ({ tasks, onTaskClick, onAddTask, onTaskMove, enableDra
 
       <DragOverlay dropAnimation={dropAnimation}>
         {activeTask ? (
-          <div className="w-96 shadow-2xl rounded-lg overflow-hidden opacity-90">
+          <div className="w-[280px] sm:w-80 md:w-96 shadow-2xl rounded-lg overflow-hidden opacity-90">
             <TaskCard task={activeTask} onTaskClick={() => {}} isDragging={true} statusVariant={activeTask.status} jobs={jobs} />
           </div>
         ) : null}

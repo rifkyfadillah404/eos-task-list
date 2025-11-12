@@ -38,7 +38,7 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
   const isActive = activeStatus === column.id;
 
   const containerClass = [
-    'flex-shrink-0 w-96 max-w-full rounded-2xl p-4 min-h-96 transition-all duration-300 backdrop-blur-sm',
+    'flex-shrink-0 w-[280px] sm:w-80 md:w-96 max-w-full rounded-xl sm:rounded-2xl p-3 sm:p-4 min-h-96 transition-all duration-300 backdrop-blur-sm',
     accent.base,
     isOver ? accent.over || 'bg-slate-100 ring-2 ring-indigo-200 shadow-lg' : '',
     !isOver && isActive ? accent.active || 'bg-slate-100 ring-1 ring-indigo-200' : '',
@@ -48,7 +48,7 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
     .join(' ');
 
   const headerClass = [
-    'rounded-2xl p-4 mb-4 transition-all duration-300 border border-transparent',
+    'rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 transition-all duration-300 border border-transparent',
     isOver || isActive ? accent.header || column.color : column.color,
     isOver ? 'shadow-md scale-[1.02]' : '',
   ]
@@ -56,7 +56,7 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
     .join(' ');
 
   const badgeClass = [
-    'text-sm font-medium px-2 py-1 rounded transition-all duration-300',
+    'text-xs sm:text-sm font-medium px-2 py-1 rounded transition-all duration-300',
     isOver || isActive
       ? accent.badge || 'bg-white text-slate-700'
       : 'text-gray-600 bg-white',
@@ -70,7 +70,7 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
       {/* Column Header */}
       <div className={headerClass}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">
+          <h3 className="font-semibold text-sm sm:text-base text-gray-900">
             {column.label}
           </h3>
           <span className={badgeClass}>
@@ -82,7 +82,7 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
       {/* Tasks Container */}
       <div
         className={`
-          space-y-3 min-h-96 transition-opacity duration-300
+          space-y-2 sm:space-y-3 min-h-96 transition-opacity duration-300
           ${isOver ? 'opacity-80' : 'opacity-100'}
         `}
       >
@@ -101,18 +101,18 @@ export const DroppableColumn = ({ column, tasks, onTaskClick, onAddTask, activeS
           <button
             onClick={onAddTask}
             className={`
-              w-full flex items-center justify-center gap-2 py-3 rounded-lg
+              w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 rounded-lg
               border-2 border-dashed transition-all duration-300
               hover:scale-105
               ${isOver
                 ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
                 : 'border-gray-300 text-gray-500 hover:text-indigo-600 hover:bg-gray-50 hover:border-indigo-300'
               }
-              mt-4
+              mt-3 sm:mt-4
             `}
           >
-            <Plus size={18} />
-            <span className="text-sm font-medium">Add task</span>
+            <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span className="text-xs sm:text-sm font-medium">Add task</span>
           </button>
         )}
       </div>
